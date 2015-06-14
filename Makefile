@@ -6,8 +6,13 @@ CC = gcc
 
 # Define your optimization flags.  Most compilers understand -O and -O2,
 # Standard (note: Solaris on UltraSparc using gcc 2.8.x might not like this.)
-#
-OPTS = -O2
+
+OPTS = -O2 -fPIC \
+-IuClibc-0.9.33.2/include \
+'-Dlibc_hidden_proto(x)='
+#-I/usr/lib/gcc/x86_64-linux-gnu/4.7/include/ \
+#-IuClibc-0.9.33.2/include \
+#-I./uClibc-0.9.33.2/libc/sysdeps/linux/common/ \
 
 # Pentium with gcc 2.7.0 or better
 #OPTS = -O2 -fomit-frame-pointer -malign-functions=2 -malign-loops=2 \
@@ -323,14 +328,14 @@ dist: distclean
 
 clean:
 	rm -f $(SRCDIR)/*.h $(SRCDIR)/*.a
-	find . -iname *.o -exec rm -f {} \;
-	find . -iname *.obj -exec rm -f {} \;
+	find . -iname '*.o' -exec rm -f {} \;
+	find . -iname '*.obj' -exec rm -f {} \;
 
 distclean: clean
 	rm -f $(BINNAME)$(EXTENSION) d$(BINNAME)$(EXTENSION) s$(BINNAME)
-	find . -iname *.exe -exec rm -f {} \;
-	find . -iname *.bak -exec rm -f {} \;
-	find . -iname *.lib -exec rm -f {} \;
+	find . -iname '*.exe' -exec rm -f {} \;
+	find . -iname '*.bak' -exec rm -f {} \;
+	find . -iname '*.lib' -exec rm -f {} \;
 	rm -f *core $(SRCDIR)/*core
 	-rm -rf $(distdir)
 	-rm -f $(distdir).tar $(distdir).tar.gz

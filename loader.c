@@ -19,53 +19,72 @@ static int debugging_printf = 1;
 static uint64_t break_start, break_end;
 static FILE * fd_handle[max_fd_handles];
 
+static int64_t do_ioctl (int64_t p0, int64_t p1, int64_t p2)
+{
+    struct __kernel_termios * k;
+    switch (p1) {
+        case 0x5401:
+            /* TCGETS */
+            k = (struct __kernel_termios *) p2;
+            memset (k, 0, sizeof (struct __kernel_termios));
+            return 0;
+        default:
+            printf ("Unsupported ioctl %ju p1 %jx p2 %jx\n",
+                    p0, p1, p2);
+            exit (1);
+            return 0;
+    }
+}
+
+static int64_t do_open (int64_t p0, int64_t p1)
+{
+    unsigned i;
+
+    if ((p1 & O_WRONLY) || (p1 & O_RDWR)) {
+        printf ("Unsupported open mode for '%s': 0x%jx\n",
+                (const char *) p0, p1);
+        exit (1);
+    } else {
+        FILE * fd = fopen ((const char *) p0, "rb");
+        if (fd == NULL) {
+            /* file not found, perhaps */
+            return -1;
+        }
+        for (i = 0; i < max_fd_handles; i++) {
+            if (fd_handle[i] == NULL) {
+                fd_handle[i] = fd;
+                fd = NULL;
+                return i;
+            }
+        }
+        printf ("No handles available for '%s'\n",
+                (const char *) p0);
+        exit (1);
+    }
+    return -1;
+}
+
 int64_t syscall_handler (int64_t syscall_number,
         int64_t p0, int64_t p1, int64_t p2, int64_t p3, int64_t p4)
 {
-    struct __kernel_termios * k;
-    unsigned i;
-
     switch (syscall_number) {
         case 0x10:
-            /* ioctl */
-            switch (p1) {
-                case 0x5401:
-                    /* TCGETS */
-                    k = (struct __kernel_termios *) p2;
-                    memset (k, 0, sizeof (struct __kernel_termios));
-                    return 0;
-                default:
-                    printf ("Unsupported ioctl %ju p1 %jx p2 %jx\n",
-                            p0, p1, p2);
-                    exit (1);
-                    return 0;
-            }
+            return do_ioctl (p0, p1, p2);
         case 2:
-            if ((p1 & O_WRONLY) || (p1 & O_RDWR)) {
-                printf ("Unsupported open mode for '%s': 0x%jx\n",
-                        (const char *) p0, p1);
-                exit (1);
-            } else {
-                FILE * fd = fopen ((const char *) p0, "rb");
-                if (fd == NULL) {
-                    /* file not found, perhaps */
-                    return -1;
-                }
-                for (i = 0; i < max_fd_handles; i++) {
-                    if (fd_handle[i] == NULL) {
-                        fd_handle[i] = fd;
-                        fd = NULL;
-                        return i;
-                    }
-                }
-                printf ("No handles available for '%s'\n",
-                        (const char *) p0);
-                exit (1);
-            }
+            return do_open (p0, p1);
         case 0:
         case 1:
         case 3:
-            if ((p0 < 0) || (p0 >= (int64_t) max_fd_handles)) {
+            switch (p0) {
+                case STDIN_FILENO:
+                    return read (0, (void *) p1, p2);
+                case STDOUT_FILENO:
+                case STDERR_FILENO:
+                    return write (1, (void *) p1, p2);
+                default:
+                    break;
+            }
+            if ((p0 <= 0) || (p0 >= (int64_t) max_fd_handles)) {
                 printf ("Invalid handle: 0x%jx\n", p0);
                 exit (1);
             }

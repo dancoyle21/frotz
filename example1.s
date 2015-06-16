@@ -27,12 +27,10 @@ fini:
 
 .text
 _tos_syscall:
-    mov     %r8, %r9
-    mov     %rcx, %r8
-    mov     %rdx, %rcx
-    mov     %rsi, %rdx
-    mov     %rdi, %rsi
-    mov     %rax, %rdi
+    mov     %rdx, %rcx      # syscall arg 3 ->  Linux arg 4
+    mov     %rsi, %rdx      # syscall arg 2 ->  Linux arg 3
+    mov     %rdi, %rsi      # syscall arg 1 ->  Linux arg 2
+    mov     %rax, %rdi      # syscall number -> Linux arg 1
     jmpq    *syscall_address(%rip)
 
 uclibc_main_launch:

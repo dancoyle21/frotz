@@ -89,8 +89,10 @@ static int64_t do_open (int64_t p0, int64_t p1)
 }
 
 int64_t syscall_handler (int64_t syscall_number,
-        int64_t p0, int64_t p1, int64_t p2, int64_t p3, int64_t p4)
+        int64_t p0, int64_t p1, int64_t p2)
 {
+    int64_t rc;
+
     switch (syscall_number) {
         case 0x10:
             return do_ioctl (p0, p1, p2);
@@ -110,19 +112,19 @@ int64_t syscall_handler (int64_t syscall_number,
                     if ((p0 == STDIN_FILENO) && (p2 > 0)) {
                         p2 = 1;
                     }
-                    p0 = fread ((void *) p1, 1, p2, fd_handle[p0]);
+                    rc = fread ((void *) p1, 1, p2, fd_handle[p0]);
                     break;
                 case 1:
-                    p0 = fwrite ((void *) p1, 1, p2, fd_handle[p0]);
+                    rc = fwrite ((void *) p1, 1, p2, fd_handle[p0]);
                     fflush (fd_handle[p0]);
                     break;
                 default:
                     fclose (fd_handle[p0]);
                     fd_handle[p0] = NULL;
-                    p0 = 0;
+                    rc = 0;
                     break;
             }
-            return p0;
+            return rc;
         case 60:
             exit (p0);
             return 1;

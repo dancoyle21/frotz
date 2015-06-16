@@ -23,15 +23,10 @@ void go_shim (uint64_t * p1, int argc, char ** argv)
 int main (int argc, char ** argv)
 {
     uint64_t *      p0;
-    int             flags;
 
     printf ("argc = %d\n", argc);
     printf ("argv = %p\n", argv);
     printf ("argv[0] = %p\n", argv[0]);
-
-    setvbuf (stdin, NULL, _IONBF, 0);
-    setvbuf (stdout, NULL, _IONBF, 0);
-    setvbuf (stderr, NULL, _IONBF, 0);
 
     p0 = mmap (NULL, embed_minimum_size + MAX_HEAP_SIZE,
               PROT_READ | PROT_WRITE | PROT_EXEC,
@@ -44,8 +39,6 @@ int main (int argc, char ** argv)
          (((uint64_t) p0) + embed_minimum_size + MAX_HEAP_SIZE));
     embed_copy (p0, syscall_handler);
 
-    p0[2] = (uint64_t) syscall_handler;
-    printf ("syscall_handler = %016jx\n", p0[2]);
     printf ("launch = %p\n\n\n\n", p0);
 
     go_shim (p0, argc, argv);

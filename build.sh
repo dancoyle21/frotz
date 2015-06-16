@@ -13,4 +13,6 @@ ld -o offset.elf -Toffset.x $OBJS
 objcopy -O binary example.elf example.bin
 objcopy -O binary offset.elf example.off
 
-gcc -o loader.exe loader.c -Wall -g
+python embed.py
+
+gcc -o loader.exe loader.c embed.c -Wall -g

@@ -53,8 +53,8 @@ static int64_t do_ioctl (int64_t p0, int64_t p1, int64_t p2)
             memset (k, 0, sizeof (struct __kernel_termios));
             return 0;
         default:
-            printf ("Unsupported ioctl %ju p1 %jx p2 %jx\n",
-                    p0, p1, p2);
+            printf ("Unsupported ioctl %u p1 %p p2 %p\n",
+                    (unsigned) p0, (void *) p1, (void *) p2);
             exit (1);
             return 0;
     }
@@ -65,8 +65,8 @@ static int64_t do_open (int64_t p0, int64_t p1)
     unsigned i;
 
     if ((p1 & O_WRONLY) || (p1 & O_RDWR)) {
-        printf ("Unsupported open mode for '%s': 0x%jx\n",
-                (const char *) p0, p1);
+        printf ("Unsupported open mode for '%s': 0x%x\n",
+                (const char *) p0, (unsigned) p1);
         exit (1);
     } else {
         FILE * fd = fopen ((const char *) p0, "rb");
@@ -101,7 +101,7 @@ int64_t syscall_handler (int64_t syscall_number,
         case 3:
             if ((p0 < 0) || (p0 >= (int64_t) MAX_FD_HANDLES)
             || (fd_handle[p0] == NULL)) {
-                printf ("Invalid handle: 0x%jx\n", p0);
+                printf ("Invalid handle: 0x%u\n", (unsigned) p0);
                 exit (1);
             }
             switch (syscall_number) {
@@ -133,14 +133,14 @@ int64_t syscall_handler (int64_t syscall_number,
             if (p0 > break_end) {
                 p0 = break_end;
             }
-            printf ("brk %016jx (%ju bytes)\n", p0, p0 - break_start);
+            printf ("brk %p (%p bytes)\n", (void *) p0, (void *) (p0 - break_start));
             return p0;
         case 201:
             /* time */
             return 1400000000;
         default:
-            printf ("Unsupported system call %ju p0 %jx p1 %jx p2 %jx\n",
-                    syscall_number, p0, p1, p2);
+            printf ("Unsupported system call %u p0 %p p1 %p p2 %p\n",
+                    (unsigned) syscall_number, (void *) p0, (void *) p1, (void *) p2);
             exit (1);
             return 0;
     }

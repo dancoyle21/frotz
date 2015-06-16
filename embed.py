@@ -33,7 +33,7 @@ def main(binary_fname, offset_fname, c_fname):
 
 /* external */
 const size_t embed_minimum_size = %u;
-void embed_copy (uint64_t * destination);
+void embed_copy (uint64_t * destination, void * syscall_handler);
 
 /* internal */
 static const size_t load_size = %u;
@@ -69,7 +69,7 @@ static const unsigned reloc_data[] = {
     # the C code that does the work
     c_out.write(""" 0x0};
 
-void embed_copy (uint64_t * destination)
+void embed_copy (uint64_t * destination, void * syscall_handler)
 {
     uint64_t reloc = ((uint64_t) destination);
     unsigned i;
@@ -80,6 +80,7 @@ void embed_copy (uint64_t * destination)
     for (i = 0; reloc_data[i] != 0; i++) {
         destination[reloc_data[i]] += reloc;
     }
+    destination[2] = (uint64_t) syscall_handler;
 }
 """)
 

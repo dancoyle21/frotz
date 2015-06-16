@@ -15,4 +15,4 @@ objcopy -O binary offset.elf example.off
 
 python embed.py
 
-gcc -o loader.exe loader.c embed.c -Wall -g
+gcc -o loader.exe loader.c embed.c syscall.c -Wall -g

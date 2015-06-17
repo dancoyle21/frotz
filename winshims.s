@@ -14,22 +14,29 @@ go_shim:
 
 .global syscall_shim
 syscall_shim:
+    pushq   %rbp
+    mov     %rsp, %rbp
+    sub     $0x80, %rsp
+
+    mov     %rbx,0x58(%rsp)
+    mov     %r12,0x60(%rsp)
+    mov     %r13,0x68(%rsp)
+    mov     %r14,0x70(%rsp)
+    mov     %r15,0x78(%rsp)
+
     mov     %rdx, %r8       # Linux arg 3 -> Win arg 3
     mov     %rcx, %r9       # Linux arg 4 -> Win arg 4
     mov     %rdi, %rcx      # Linux arg 1 -> Win arg 1
     mov     %rsi, %rdx      # Linux arg 2 -> Win arg 2
-    pushq   %rbp
-    pushq   %rbx
-    pushq   %r12
-    pushq   %r13
-    pushq   %r14
-    pushq   %r15
     callq   syscall_handler
-    popq    %r15
-    popq    %r14
-    popq    %r13
-    popq    %r12
-    popq    %rbx
+
+    mov     0x58(%rsp),%rbx
+    mov     0x60(%rsp),%r12
+    mov     0x68(%rsp),%r13
+    mov     0x70(%rsp),%r14
+    mov     0x78(%rsp),%r15
+
+    add     $0x80, %rsp
     popq    %rbp
     retq
 

@@ -16,3 +16,7 @@ objcopy -O binary offset.elf example.off
 python embed.py
 
 gcc -o linuxloader.exe linuxloader.c embed.c syscall.c -Wall -g
+
+# on windows...
+# gcc -m64 -o winloader.exe winloader.c embed.c syscall.c winshims.s -Wall -g
+

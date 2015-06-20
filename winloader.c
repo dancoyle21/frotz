@@ -26,7 +26,7 @@ int main (int argc, char ** argv)
     init_syscall
         ((((uint64_t) p0) + embed_minimum_size),
          (((uint64_t) p0) + embed_minimum_size + MAX_HEAP_SIZE));
-    do_load (p0, syscall_handler, source_fname);
+    do_load (p0, syscall_shim, source_fname);
 
     printf ("launch = %p\n\n\n\n", p0);
 

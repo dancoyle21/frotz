@@ -10,7 +10,7 @@
 #include <fcntl.h>
 #include <time.h>
 
-#include "embed.h"
+#include "load.h"
 
 
 void go_shim (uint64_t * p1, int argc, char ** argv)
@@ -23,11 +23,14 @@ void go_shim (uint64_t * p1, int argc, char ** argv)
 int main (int argc, char ** argv)
 {
     uint64_t *      p0;
+    const char *    source_fname = "program";
+    size_t          embed_minimum_size;
 
     printf ("argc = %d\n", argc);
     printf ("argv = %p\n", argv);
     printf ("argv[0] = %p\n", argv[0]);
 
+    embed_minimum_size = init_load (source_fname);
     p0 = mmap (NULL, embed_minimum_size + MAX_HEAP_SIZE,
               PROT_READ | PROT_WRITE | PROT_EXEC,
               MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
@@ -37,7 +40,7 @@ int main (int argc, char ** argv)
     init_syscall
         ((((uint64_t) p0) + embed_minimum_size),
          (((uint64_t) p0) + embed_minimum_size + MAX_HEAP_SIZE));
-    embed_copy (p0, syscall_handler);
+    do_load (p0, syscall_handler, source_fname);
 
     printf ("launch = %p\n\n\n\n", p0);
 

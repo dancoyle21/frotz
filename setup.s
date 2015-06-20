@@ -11,13 +11,39 @@ _super_start:
     # %rsi is argv from loader
     jmp     uclibc_main_launch
 
-.org 0x010
+    .ascii "jdw"
+
+.org 0x008
+version:
+    # qword [1]
+    # First version number is filled in by make_program.py
+    .long  0
+    # Second version number is set here:
+    .long  0x1
 syscall_address:
+    # qword [2]
+    # Filled in by loader (at runtime):
     .quad   0
 fini_address:
+    # qword [3]
+    # Set by linker:
     .quad   fini
 end_address:
+    # qword [4]
+    # Set by linker:
     .quad   _end
+load_size:
+    # qword [5]
+    # Set by make_program.py:
+    .quad  0
+total_size:
+    # qword [6]
+    # Set by make_program.py:
+    .quad  0
+reserved:
+    # qword[7]
+    # Not used:
+    .quad  0
 init:
     retq
 

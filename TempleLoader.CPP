@@ -3,6 +3,7 @@ U64 TL_MAX_HEAP_SIZE = 0x100000;
 U64 * TL_Base;
 U64 * TL_Argv;
 U64 * TL_Restore_SP;
+U64 * TL_Temporary;
 
 class ProgramHeader
 {
@@ -16,19 +17,50 @@ class ProgramHeader
     U8 pad[BLK_SIZE-(7*8)];
 };
 
+U0 TL_Restore_Point();
+
 U64 TL_Syscall(U64 number, U64 p0, U64 p1, U64 p2, U64 * s1, U64 * s2)
 {
-    U64 i = 100;
+    U64 i;
+    I8 ch;
+    U8 * buf;
 
-    "system call reached, number = %d, p0 = %d, p1 = %d, p2 = %d\n",
-        number, p0, p1, p2;
-    
-    while ((s1 <= s2) && (i > 0)) {
-        "stack[%p] = %d\n", s1, s1[0];
-        s1 ++;
-        i --;
+    switch (number) {
+        case 1:
+            // write
+            MemCpy (&buf, &p1, 8);
+            if (p2 > 1000) {
+                "Printing too much: %d\n", p2;
+                TL_Restore_Point ();
+                return 0;
+            }
+            for (i = 0; i < p2; i++) {
+                ch = buf[i];
+                if (ch == 0x0a) {
+                    "\n";
+                } else if (ch == 0x0d) {
+                    // nothing
+                } else if (ch < 0x20) {
+                    ch = '.';
+                    '' ch;
+                } else {
+                    '' ch;
+                }
+            }
+            return 0;
+        default:
+            "\n\nsystem call reached, number = %d, p0 = %d, p1 = %d, p2 = %d\n",
+                number, p0, p1, p2;
+            i = 1000;
+            while ((s1 <= s2) && (i > 0)) {
+                "stack[%p] = %d\n", s1, s1[0];
+                s1 ++;
+                i --;
+            }
+            "go to restore\n";
+            TL_Restore_Point ();
+            return 0;
     }
-    "s1 = %p s2 = %p i = %d\n", s1, s2, i;
     return 0;
 }
 
@@ -63,7 +95,10 @@ _TL_SYSCALL_POINT::
     PUSH    RSI
     PUSH    RDI
     CALL    &TL_Syscall
+    MOV     I64 [&TL_Temporary],RAX
     POP_REGS
+    MOV     RAX,I64 [&TL_Temporary]
+    RET
 
 _TL_RESTORE_POINT::
     MOV     RCX,I64 [&TL_Restore_SP]
@@ -74,6 +109,7 @@ _TL_RESTORE_POINT::
     POP     RBP
     RET
 }
+
 _extern _TL_LAUNCH U0 TL_Launch();
 _extern _TL_RESTORE_POINT U0 TL_Restore_Point();
 _extern _TL_SYSCALL_POINT U0 TL_Syscall_Point();

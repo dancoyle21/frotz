@@ -16,10 +16,19 @@ class ProgramHeader
     U8 pad[BLK_SIZE-(7*8)];
 };
 
-U64 TL_Syscall(U64 number, U64 p0, U64 p1, U64 p2)
+U64 TL_Syscall(U64 number, U64 p0, U64 p1, U64 p2, U64 * s1, U64 * s2)
 {
+    U64 i = 100;
+
     "system call reached, number = %d, p0 = %d, p1 = %d, p2 = %d\n",
         number, p0, p1, p2;
+    
+    while ((s1 <= s2) && (i > 0)) {
+        "stack[%p] = %d\n", s1, s1[0];
+        s1 ++;
+        i --;
+    }
+    "s1 = %p s2 = %p i = %d\n", s1, s2, i;
     return 0;
 }
 
@@ -43,6 +52,12 @@ _TL_SYSCALL_POINT::
     //           Called function cleans up the stack
     // Linux: args in registers (l->r): RDI, RSI, RDX, RCX
     // Both: returned value in RAX
+
+    MOV     RAX,I64 [&TL_Restore_SP]
+    PUSH    RAX
+    MOV     RAX,RSP
+    PUSH    RAX
+
     PUSH    RCX
     PUSH    RDX
     PUSH    RSI

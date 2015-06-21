@@ -35,7 +35,7 @@ _TL_LAUNCH::
     MOV     I64 [&TL_Restore_SP], RCX
     MOV     RSI,I64 [&TL_Argv]
     MOV     RCX,I64 [&TL_Base]
-    //CALL    RCX
+    CALL    RCX
 
 _TL_SYSCALL_POINT::
     PUSH_REGS
@@ -136,14 +136,9 @@ Bool TL_Loader()
     MemSet (TL_Argv, 0x00, 32);
     TL_Argv[0] = "loader";
 
-    "TL_Base = %p  TL_Argv = %p  TL_Restore_SP = %p\n", TL_Base, TL_Argv, TL_Restore_SP;
-    "TL_Argv[0] = %p  TL_Restore_SP[0] = %p\n", TL_Argv[0], TL_Restore_SP[0];
-
     "launching\n";
     TL_Launch;
     "\nreturned from program\n";
-    "TL_Base = %p  TL_Argv = %p  TL_Restore_SP = %p\n", TL_Base, TL_Argv, TL_Restore_SP;
-    "TL_Argv[0] = %p  TL_Restore_SP[0] = %p\n", TL_Argv[0], TL_Restore_SP[0];
     Free (TL_Argv);
     Free (TL_Base);
     "memory freed\n";

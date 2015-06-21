@@ -72,7 +72,7 @@ Bool TL_Loader()
     FClose (f);
     "loaded blocks\n";
 
-    // read the relocation table..
+    // read the relocation table and do the relocations..
     for (i = header.load_size; i < header.total_size; i += 4) {
         table_entry = base_copy + i;
         MemCpy (&reloc, table_entry, 4);
@@ -80,14 +80,12 @@ Bool TL_Loader()
            "relocation %d invalid.\n", reloc;
            return FALSE;
         }
-        "relocate TL_Base[%d] ", reloc;
         reloc = reloc * 8;
         MemCpy (&tmp, base_copy + reloc, 8);
-        "before %d ", tmp;
         tmp += offset;
         MemCpy ( base_copy + reloc, &tmp, 8);
-        "after %d\n", tmp;
     }
+    "relocated blocks\n";
 
     TL_Base[2] = &TL_Syscall;
     return TRUE;

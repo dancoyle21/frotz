@@ -4,7 +4,6 @@ U64 * TL_Base;
 U64 * TL_Argv;
 U64 * TL_Restore_SP;
 U64 * TL_Temporary;
-U64 TL_Countdown;
 U64 TL_Size;
 U64 TL_SP_Start;
 
@@ -30,9 +29,23 @@ class CoreHeader
     U8 pad[BLK_SIZE-(5*8)];
 };
 
-U0 TL_Restore_Point();
+asm {
+    ALIGN   8,OC_NOP
+_TL_RESTORE_POINT::
+
+    MOV     RCX,I64 [&TL_Restore_SP]
+    MOV     RSP,RCX
+
+    POP_REGS
+
+    POP     RBP
+    RET
+
+}
+_extern _TL_RESTORE_POINT U0 TL_Restore_Point();
 
 asm {
+    ALIGN   8,OC_NOP
 _TL_GET_SP::
     MOV     RAX,RSP
     RET
@@ -79,22 +92,19 @@ U0 TL_Core_Dump()
     TL_Partial_Dump ("core3", &TL_Get_SP_1, 0x20000);
 }
 
-U64 TL_Syscall(U64 number, U64 p0, U64 p1, U64 p2, U64 * s1, U64 * s2)
+U0 TL_Helper (U64 marker, U64 stackptr, U64 returnto)
+{
+    "marker %p stackptr %p returnto %p", marker, stackptr, returnto;
+    while(1) {}
+}
+
+U64 TL_Syscall(U64 number, U64 p0, U64 p1, U64 p2)
 {
     U64 i;
     U64 copy;
     I8 xtmp;
     U8 * buf;
 
-    "core dump\n";
-    TL_Core_Dump;
-    "restore point... %p %p\n", TL_Restore_SP, TL_Restore_SP[0];
-    TL_Restore_Point ();
-    if (TL_Countdown == 0) {
-        number += 1000;
-    } else {
-        TL_Countdown --;
-    }
     switch (number) {
         case 1:
             // write
@@ -102,8 +112,6 @@ U64 TL_Syscall(U64 number, U64 p0, U64 p1, U64 p2, U64 * s1, U64 * s2)
             MemCpy (&buf, &copy, 8);
             if (p2 > 1000) {
                 "Printing too much: %d\n", p2;
-                while (1) {}
-                TL_Restore_Point ();
                 return 0;
             }
             "[[";
@@ -121,23 +129,12 @@ U64 TL_Syscall(U64 number, U64 p0, U64 p1, U64 p2, U64 * s1, U64 * s2)
                 }
             }
             "]]\n";
-            "TL_Restore_SP = %p   s1 = %p  s2 = %p\n", TL_Restore_SP, s1, s2;
-            TL_Core_Dump;
-            while (1) {}
-            TL_Restore_Point ();
             return p2;
         default:
             "\n\nsystem call reached, number = %d, p0 = %d, p1 = %d, p2 = %d\n",
                 number, p0, p1, p2;
-            i = 1000;
-            while ((s1 <= s2) && (i > 0)) {
-                "stack[%p] = %d\n", s1, s1[0];
-                s1 ++;
-                i --;
-            }
             "go to restore\n";
-            while (1) {}
-            TL_Restore_Point ();
+            TL_Restore_Point;
             return 0;
     }
     return 0;
@@ -149,26 +146,18 @@ _TL_LAUNCH::
     MOV     RBP, RSP
 
     PUSH_REGS
-    MOV     RAX,0xAAAAAAAAAAAAAAAA
 
     MOV     RCX,RSP
-    PUSH    RCX
-
-    MOV     RDI,1
     MOV     I64 [&TL_Restore_SP], RCX
+    MOV     RDI,1
     MOV     RSI,I64 [&TL_Argv]
     MOV     RCX,I64 [&TL_Base]
 
-    MOV     RBX,I64 [&TL_Restore_SP]
-    PUSH    RBX
-
-    PUSH    RAX
-    PUSH    RAX
-    PUSH    RAX
-    PUSH    RAX
-
     CALL    RCX
 
+    HLT
+
+    ALIGN   8,OC_NOP
 _TL_SYSCALL_POINT::
     PUSH_REGS
     // TempleOS: push args on stack in right-to-left order
@@ -176,54 +165,20 @@ _TL_SYSCALL_POINT::
     // Linux: args in registers (l->r): RDI, RSI, RDX, RCX
     // Both: returned value in RAX
 
-    MOV     RAX,0xBBBBBBBBBBBBBBBB
-    MOV     RBX,0xDDDDDDDDDDDDDDDD
-    PUSH    RAX
-    PUSH    RBX
-    PUSH    RAX
-    PUSH    RBX
-    PUSH    RAX
-    PUSH    RBX
-    PUSH    RAX
-    PUSH    RBX
-
-    MOV     RAX,I64 [&TL_Restore_SP]
-    PUSH    RAX
-    MOV     RAX,RSP
-    PUSH    RAX
-
     PUSH    RCX
     PUSH    RDX
     PUSH    RSI
     PUSH    RDI
     CALL    &TL_Syscall
 
-    POP     RBX
-    POP     RBX
-    POP     RBX
-    POP     RBX
-    POP     RBX
-    POP     RBX
-    POP     RBX
-    POP     RBX
-
     MOV     I64 [&TL_Temporary],RAX
     POP_REGS
     MOV     RAX,I64 [&TL_Temporary]
     RET
-
-_TL_RESTORE_POINT::
-    MOV     RCX,I64 [&TL_Restore_SP]
-    MOV     RSP,RCX
-
-    POP_REGS
-
-    POP     RBP
-    RET
+    ALIGN   8,OC_NOP
 }
 
 _extern _TL_LAUNCH U0 TL_Launch();
-_extern _TL_RESTORE_POINT U0 TL_Restore_Point();
 _extern _TL_SYSCALL_POINT U0 TL_Syscall_Point();
 
 Bool TL_Loader()
@@ -295,12 +250,13 @@ Bool TL_Loader()
     "relocated blocks\n";
 
     TL_Base[2] = &TL_Syscall_Point;
-    TL_Argv = MAlloc(32);
-    MemSet (TL_Argv, 0x00, 32);
+    TL_Argv = MAlloc(64);
+    MemSet (TL_Argv, 0x00, 64);
     TL_Argv[0] = "loader";
-    TL_Countdown = 10;
+    TL_Argv[2] = "FAKE=1234";
+    TL_Argv[3] = "LINES=24";
     TL_Size = header.total_size;
-    TL_SP_Start = TL_Get_SP_2();
+    TL_SP_Start = TL_Get_SP_2;
 
     "launching\n";
     TL_Launch;

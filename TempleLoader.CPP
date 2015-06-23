@@ -42,6 +42,19 @@ _TL_RESTORE_POINT::
 }
 _extern _TL_RESTORE_POINT U0 TL_Restore_Point();
 
+U64 TL_Syscall_Ioctl (U64 p0, U64 p1, U64 p2)
+{
+    switch (p1) {
+        case 0x5401:
+            /* TCGETS */
+            return 0;
+        default:
+            "\n\nunsupported ioctl reached, p0 = %d, p1 = %d, p2 = %d\n",
+                p0, p1, p2;
+            TL_Restore_Point;
+            return 0;
+    }
+}
 
 U64 TL_Syscall(U64 number, U64 p0, U64 p1, U64 p2)
 {
@@ -75,10 +88,15 @@ U64 TL_Syscall(U64 number, U64 p0, U64 p1, U64 p2)
             }
             "]]\n";
             return p2;
+        case 16:
+            return TL_Syscall_Ioctl (p0, p1, p2);
+        case 60:
+            "exit\n";
+            TL_Restore_Point;
+            return 0;
         default:
-            "\n\nsystem call reached, number = %d, p0 = %d, p1 = %d, p2 = %d\n",
+            "\n\nunsupported system call reached, number = %d, p0 = %d, p1 = %d, p2 = %d\n",
                 number, p0, p1, p2;
-            "go to restore\n";
             TL_Restore_Point;
             return 0;
     }

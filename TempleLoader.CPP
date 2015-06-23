@@ -60,7 +60,6 @@ U64 TL_Syscall(U64 number, U64 p0, U64 p1, U64 p2)
 {
     U64 i;
     U64 copy;
-    I8 xtmp;
     U8 * buf;
 
     switch (number) {
@@ -69,29 +68,22 @@ U64 TL_Syscall(U64 number, U64 p0, U64 p1, U64 p2)
             copy = p1;
             MemCpy (&buf, &copy, 8);
             if (p2 > 1000) {
-                "Printing too much: %d\n", p2;
+                "\n\nPrinting too much: %d\n", p2;
+                TL_Restore_Point;
                 return 0;
             }
-            "[[";
             for (i = 0; i < p2; i++) {
-                xtmp = buf[i];
-                if (xtmp == 0x0a) {
-                    "\\n";
-                } else if (xtmp == 0x0d) {
-                    "\\r";
-                } else if (xtmp < 0x20) {
-                    xtmp = '.';
-                    '' xtmp;
-                } else {
-                    '' xtmp;
+                if (buf[i] == 0x0a) {
+                    "\n";
+                } else if (buf[i] != 0x0d) {
+                    '' buf[i];
                 }
             }
-            "]]\n";
             return p2;
         case 16:
             return TL_Syscall_Ioctl (p0, p1, p2);
         case 60:
-            "exit\n";
+            "\n\nexit\n";
             TL_Restore_Point;
             return 0;
         default:
@@ -216,6 +208,7 @@ Bool TL_Loader()
     TL_Argv = MAlloc(64);
     MemSet (TL_Argv, 0x00, 64);
     TL_Argv[0] = "loader";
+    TL_Argv[1] = "detective.z5";
 
     "launching\n";
     TL_Launch;

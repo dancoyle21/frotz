@@ -4,8 +4,6 @@ U64 * TL_Base;
 U64 * TL_Argv;
 U64 * TL_Restore_SP;
 U64 * TL_Temporary;
-U64 TL_Size;
-U64 TL_SP_Start;
 
 class ProgramHeader
 {
@@ -44,59 +42,6 @@ _TL_RESTORE_POINT::
 }
 _extern _TL_RESTORE_POINT U0 TL_Restore_Point();
 
-asm {
-    ALIGN   8,OC_NOP
-_TL_GET_SP::
-    MOV     RAX,RSP
-    RET
-}
-_extern _TL_GET_SP U64 * TL_Get_SP_1();
-_extern _TL_GET_SP U64 TL_Get_SP_2();
-
-U0 TL_Partial_Dump(U8 * filename, U8 * base, U64 size)
-{
-    CoreHeader cheader;
-    U64 num_blocks = (size + BLK_SIZE - 1) / BLK_SIZE;
-    U64 i;
-    CFile * fd;
-
-    "dumping %p %d -> %d blocks\n", base, size, num_blocks;
-
-    fd = FOpen (filename, "w", 1 + num_blocks);
-    if (!fd) {
-        "could not be opened\n";
-    } else {
-        MemSet (&cheader, 0x00, BLK_SIZE);
-        cheader.leadin_code_1 = 0x5555555555555555;
-        cheader.leadin_code_2 = 0xAAAAAAAAAAAAAAAA;
-        cheader.base = base;
-        cheader.size = size;
-        cheader.blk_size = BLK_SIZE;
-        
-        FWBlks (fd, &cheader, 0, 1);
-        for (i = 1; i <= num_blocks; i++) {
-            FWBlks (fd, base, i, 1);
-            base = base + BLK_SIZE;
-        }
-        FClose (fd);
-    }
-}
-
-U0 TL_Core_Dump()
-{
-    U64 * sp1 = TL_Get_SP_1;
-    U64 sp2 = TL_Get_SP_2;
-
-    TL_Partial_Dump ("core1", TL_Base, TL_Size);
-    TL_Partial_Dump ("core2", sp1, TL_SP_Start - sp2);
-    TL_Partial_Dump ("core3", &TL_Get_SP_1, 0x20000);
-}
-
-U0 TL_Helper (U64 marker, U64 stackptr, U64 returnto)
-{
-    "marker %p stackptr %p returnto %p", marker, stackptr, returnto;
-    while(1) {}
-}
 
 U64 TL_Syscall(U64 number, U64 p0, U64 p1, U64 p2)
 {
@@ -218,7 +163,7 @@ Bool TL_Loader()
     TL_Base = MAlloc (TL_MAX_HEAP_SIZE + header.total_size);
     "base %p.\n", TL_Base;
 
-    MemSet (TL_Base, 0xcc, TL_MAX_HEAP_SIZE + header.total_size);
+    MemSet (TL_Base, 0x0, TL_MAX_HEAP_SIZE + header.total_size);
 
     // Make aliases to TL_Base
     MemCpy (&offset, &TL_Base, 8);
@@ -253,10 +198,6 @@ Bool TL_Loader()
     TL_Argv = MAlloc(64);
     MemSet (TL_Argv, 0x00, 64);
     TL_Argv[0] = "loader";
-    TL_Argv[2] = "FAKE=1234";
-    TL_Argv[3] = "LINES=24";
-    TL_Size = header.total_size;
-    TL_SP_Start = TL_Get_SP_2;
 
     "launching\n";
     TL_Launch;

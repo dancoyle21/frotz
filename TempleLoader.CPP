@@ -1,11 +1,27 @@
 
-U64 TL_MAX_HEAP_SIZE = 0x100000;
+#define TL_MAX_HEAP_SIZE    0x100000
+#define TL_MAX_FDS          100
+#define TL_SIZE_LIMIT       0x10000
+#define TL_PROGRAM          "program"
+
 U64 * TL_Base;
 U64 * TL_Argv;
 U64 * TL_Restore_SP;
 U64 * TL_Temporary;
+U64 TL_Break_Start;
+U64 TL_Break_End;
 
-class ProgramHeader
+
+class TL_FD
+{
+    U8 * base;
+    U64 remaining;
+    U64 position;
+};
+
+TL_FD TL_FD_Handle[TL_MAX_FDS];
+
+class TL_ProgramHeader
 {
     U64 start;
     U64 version;
@@ -15,24 +31,13 @@ class ProgramHeader
     U64 load_size;
     U64 total_size;
     U8 pad[BLK_SIZE-(7*8)];
-}
-;
-class CoreHeader
-{
-    U64 leadin_code_1;
-    U64 leadin_code_2;
-    U8 * base;
-    U64 size;
-    U64 blk_size;
-    U8 pad[BLK_SIZE-(5*8)];
 };
 
 asm {
     ALIGN   8,OC_NOP
 _TL_RESTORE_POINT::
 
-    MOV     RCX,I64 [&TL_Restore_SP]
-    MOV     RSP,RCX
+    MOV     RCX,I64 [&TL_Restore_SP] MOV     RSP,RCX
 
     POP_REGS
 
@@ -41,6 +46,20 @@ _TL_RESTORE_POINT::
 
 }
 _extern _TL_RESTORE_POINT U0 TL_Restore_Point();
+
+U8 * TL_To_Ptr (U64 p0)
+{
+    U8 * rc;
+    MemCpy (&rc, &p0, 8);
+    return rc;
+}
+
+U64 TL_To_Int (U8 * p0)
+{
+    U64 rc;
+    MemCpy (&rc, &p0, 8);
+    return rc;
+}
 
 U64 TL_Syscall_Ioctl (U64 p0, U64 p1, U64 p2)
 {
@@ -56,36 +75,152 @@ U64 TL_Syscall_Ioctl (U64 p0, U64 p1, U64 p2)
     }
 }
 
-U64 TL_Syscall(U64 number, U64 p0, U64 p1, U64 p2)
+U64 TL_Syscall_Read (U64 fd, U8 * buf, U64 size)
+{
+    if ((size == 0) || (size > TL_SIZE_LIMIT)) {
+        "\n\nunsupported read of size %d to fd %d\n", size, fd;
+        TL_Restore_Point;
+    }
+    if (fd == 0) {
+        // read from stdin
+        buf[0] = GetChar (NULL, FALSE, FALSE);
+        return 1;
+    }
+    // read from some other file handle (check the handle first)
+    if ((fd >= TL_MAX_FDS) || (TL_FD_Handle[fd].base == NULL)) {
+        "\n\nunsupported read from fd %d\n", fd;
+        TL_Restore_Point;
+    }
+    // bound read by file size
+    if (size > TL_FD_Handle[fd].remaining) {
+        size = TL_FD_Handle[fd].remaining;
+    }
+    // do read (copy)
+    MemCpy (buf, TL_FD_Handle[fd].base + TL_FD_Handle[fd].position, size);
+
+    // advance pointers
+    TL_FD_Handle[fd].remaining -= size;
+    TL_FD_Handle[fd].position += size;
+    "read %d bytes from fd %d to %p\n", size, fd, buf;
+    return size;
+}
+
+U64 TL_Syscall_Write (U64 fd, U8 * buf, U64 size)
 {
     U64 i;
-    U64 copy;
-    U8 * buf;
+    if ((fd != 1) && (fd != 2)) {
+        "\n\nunsupported write to fd %d\n", fd;
+        TL_Restore_Point;
+    }
+    if ((size == 0) || (size > TL_SIZE_LIMIT)) {
+        "\n\nunsupported write of size %d to fd %d\n", size, fd;
+        TL_Restore_Point;
+    }
+    for (i = 0; i < size; i++) {
+        if (buf[i] == 0x0a) {
+            "\n";
+        } else if (buf[i] != 0x0d) {
+            '' buf[i];
+        }
+    }
+    return size;
+}
 
+U64 TL_Syscall_Open (U8 * buf, U64 mode)
+{
+    CFile * f;
+    I64 rc, i;
+    U64 num_blocks;
+
+    if ((mode & 3) != 0) {
+        "\n\nunsupported open mode for file '%s': %d\n", buf, mode;
+        TL_Restore_Point;
+    }
+    f = FOpen (buf, "r");
+    if (!f) {
+        // ENOENT
+        return -2;
+    }
+    rc = -24; // EMFILE
+    for (i = 3; i < TL_MAX_FDS; i++) {
+        if (TL_FD_Handle[i].base == NULL) {
+            rc = i;
+            break;
+        }
+    }
+    if (rc < 0) {
+        FClose (f);
+        return rc; // EMFILE
+    }
+    TL_FD_Handle[rc].position = 0;
+    TL_FD_Handle[rc].remaining = FSize (f);
+    if (TL_FD_Handle[rc].remaining == 0) {
+        "\n\nunsupported open empty file '%s'\n", buf;
+        TL_Restore_Point;
+    }
+
+    num_blocks = (TL_FD_Handle[rc].remaining + BLK_SIZE - 1) / BLK_SIZE;
+    TL_FD_Handle[rc].base = MAlloc (num_blocks * BLK_SIZE);
+
+    for (i = 0; i < num_blocks; i++) {
+        U8 * file_entry = TL_FD_Handle[rc].base + (i * BLK_SIZE);
+        if (!FRBlks (f, file_entry, i, 1)) {
+            "\n\nunable to read block %d from file '%s'\n", i, buf;
+            return FALSE;
+        }
+    }
+    FClose (f);
+    "open '%s' -> fd %d\n", buf, rc;
+    return rc;
+}
+
+U64 TL_Syscall_Close (U64 fd)
+{
+    if ((fd >= TL_MAX_FDS) || (fd <= 2) || (TL_FD_Handle[fd].base == NULL)) {
+        "\n\nunsupported close for fd %d\n", fd;
+        TL_Restore_Point;
+    }
+    Free (TL_FD_Handle[fd].base);
+    TL_FD_Handle[fd].position = 0;
+    TL_FD_Handle[fd].remaining = 0;
+    return 0;
+}
+
+U64 TL_Syscall_Brk (U64 pos)
+{
+    // brk (allocate memory)
+    if (pos < TL_Break_Start) {
+        pos = TL_Break_Start;
+    }
+    if (pos > TL_Break_End) {
+        pos = TL_Break_End;
+    }
+    "brk %p, %d bytes\n", TL_To_Ptr (pos), pos - TL_Break_Start;
+    return pos;
+}
+
+U64 TL_Syscall(U64 number, U64 p0, U64 p1, U64 p2)
+{
     switch (number) {
+        case 0:
+            return TL_Syscall_Read (p0, TL_To_Ptr (p1), p2);
         case 1:
-            // write
-            copy = p1;
-            MemCpy (&buf, &copy, 8);
-            if (p2 > 1000) {
-                "\n\nPrinting too much: %d\n", p2;
-                TL_Restore_Point;
-                return 0;
-            }
-            for (i = 0; i < p2; i++) {
-                if (buf[i] == 0x0a) {
-                    "\n";
-                } else if (buf[i] != 0x0d) {
-                    '' buf[i];
-                }
-            }
-            return p2;
+            return TL_Syscall_Write (p0, TL_To_Ptr (p1), p2);
+        case 2:
+            return TL_Syscall_Open (TL_To_Ptr (p0), p1);
+        case 3:
+            return TL_Syscall_Close (p0);
+        case 12:
+            return TL_Syscall_Brk (p0);
         case 16:
             return TL_Syscall_Ioctl (p0, p1, p2);
         case 60:
             "\n\nexit\n";
             TL_Restore_Point;
             return 0;
+        case 201:
+            // time
+            return 1400000000;
         default:
             "\n\nunsupported system call reached, number = %d, p0 = %d, p1 = %d, p2 = %d\n",
                 number, p0, p1, p2;
@@ -104,7 +239,7 @@ _TL_LAUNCH::
 
     MOV     RCX,RSP
     MOV     I64 [&TL_Restore_SP], RCX
-    MOV     RDI,1
+    MOV     RDI,2
     MOV     RSI,I64 [&TL_Argv]
     MOV     RCX,I64 [&TL_Base]
 
@@ -138,7 +273,7 @@ _extern _TL_SYSCALL_POINT U0 TL_Syscall_Point();
 
 Bool TL_Loader()
 {
-    ProgramHeader header;
+    TL_ProgramHeader header;
     CFile *f;
     U64 num_blocks;
     U64 offset;
@@ -149,13 +284,13 @@ Bool TL_Loader()
     U32 reloc;
 
     // read first block
-    f = FOpen ("program", "r");
+    f = FOpen (TL_PROGRAM, "r");
     if (!f) {
-        "Unable to open 'program' file\n\n";
+        "Unable to open '%s' file\n\n", TL_PROGRAM;
         return FALSE;
     }
     if (!FRBlks (f, &header, 0, 1)) {
-        "Unable to read header from 'program' file\n\n";
+        "Unable to read header from '%s' file\n\n", TL_PROGRAM;
         return FALSE;
     }
     "program header:\n";
@@ -176,13 +311,13 @@ Bool TL_Loader()
     MemSet (TL_Base, 0x0, TL_MAX_HEAP_SIZE + header.total_size);
 
     // Make aliases to TL_Base
-    MemCpy (&offset, &TL_Base, 8);
-    MemCpy (&base_copy, &TL_Base, 8);
+    offset = TL_To_Int (TL_Base);
+    base_copy = TL_To_Ptr (offset);
 
     for (i = 0; i < num_blocks; i++) {
         file_entry = base_copy + (i * BLK_SIZE);
         if (!FRBlks (f, file_entry, i, 1)) {
-            "Unable to read content from 'program' file\n\n";
+            "Unable to read content from '%s' file\n\n", TL_PROGRAM;
             return FALSE;
         }
     }
@@ -200,21 +335,39 @@ Bool TL_Loader()
         reloc = reloc * 8;
         MemCpy (&tmp, base_copy + reloc, 8);
         tmp += offset;
-        MemCpy ( base_copy + reloc, &tmp, 8);
+        MemCpy (base_copy + reloc, &tmp, 8);
     }
     "relocated blocks\n";
 
+    // Heap space:
+    TL_Break_Start = header.end_address + offset;
+    TL_Break_End = header.total_size + TL_MAX_HEAP_SIZE + offset;
+
+    // Setup environment
     TL_Base[2] = &TL_Syscall_Point;
-    TL_Argv = MAlloc(64);
+    TL_Argv = MAlloc (64);
     MemSet (TL_Argv, 0x00, 64);
     TL_Argv[0] = "loader";
     TL_Argv[1] = "detective.z5";
+    for (i = 0; i < TL_MAX_FDS; i++) {
+        TL_FD_Handle[i].base = NULL;
+        TL_FD_Handle[i].remaining = 0;
+        TL_FD_Handle[i].position = 0;
+    }
+
+    "heap start %p.\n", TL_To_Ptr (TL_Break_Start);
+    "heap end %p.\n", TL_To_Ptr (TL_Break_End);
 
     "launching\n";
     TL_Launch;
     "\nreturned from program\n";
     Free (TL_Argv);
     Free (TL_Base);
+    for (i = 0; i < TL_MAX_FDS; i++) {
+        if (TL_FD_Handle[i].base != NULL) {
+            Free (TL_FD_Handle[i]);
+        }
+    }
     "memory freed\n";
     return TRUE;
 }

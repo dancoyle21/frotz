@@ -7,4 +7,19 @@ frotz can run on any operating system that runs on x64, provided
 that a loader is written for that operating system. Currently
 Windows and Linux are supported.
 
+Support for TempleOS is in progress. However, SSE2 instructions
+are not supported on TempleOS:
+
+000000000000cbe0 <dumb_init_input>:
+    cbe0:       48 8b 05 21 39 01 00    mov    0x13921(%rip),%rax        # 20508 <rv_names
+    +0xc8>
+    cbe7:       0f b6 00                movzbl (%rax),%eax
+    cbea:       3c 03                   cmp    $0x3,%al
+    cbec:       76 26                   jbe    cc14 <dumb_init_input+0x34>
+    cbee:       0f 57 c0                xorps  %xmm0,%xmm0
+    cbf1:       0f 2e 05 48 40 01 00    ucomiss 0x14048(%rip),%xmm0        # 20c40 <speed>
+    cbf8:       7b 26                   jnp    cc20 <dumb_init_input+0x40>
+
+cbee triggers an invalid opcode fault.
+
 

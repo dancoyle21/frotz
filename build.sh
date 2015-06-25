@@ -1,5 +1,6 @@
 #!/bin/bash -xe
 
+make -C uClibc-0.9.33.2
 make src/frotz_common.a src/frotz_dumb.a
 # gcc -o dfrotz src/frotz_common.a src/frotz_dumb.a 
 

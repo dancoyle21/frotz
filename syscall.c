@@ -78,6 +78,7 @@ static int64_t do_open (int64_t p0, int64_t p1)
             if (fd_handle[i] == NULL) {
                 fd_handle[i] = fd;
                 fd = NULL;
+                printf ("open '%s' -> fd %u\n", (const char *) p0, i);
                 return i;
             }
         }
@@ -113,6 +114,11 @@ int64_t syscall_handler (int64_t syscall_number,
                         p2 = 1;
                     }
                     rc = fread ((void *) p1, 1, p2, fd_handle[p0]);
+                    if (p0 != STDIN_FILENO) {
+                        printf ("read %u bytes from fd %u to %p\n",
+                                (unsigned) rc, (unsigned) p0,
+                                (void *) p1);
+                    }
                     break;
                 case 1:
                     rc = fwrite ((void *) p1, 1, p2, fd_handle[p0]);
@@ -135,7 +141,8 @@ int64_t syscall_handler (int64_t syscall_number,
             if (p0 > break_end) {
                 p0 = break_end;
             }
-            printf ("brk %p (%p bytes)\n", (void *) p0, (void *) (p0 - break_start));
+            printf ("brk %p, %u bytes\n",
+                    (void *) p0, (unsigned) (p0 - break_start));
             return p0;
         case 201:
             /* time */

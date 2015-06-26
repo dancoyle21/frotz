@@ -2,6 +2,7 @@
 #define TL_MAX_HEAP_SIZE    0x100000
 #define TL_MAX_FDS          100
 #define TL_SIZE_LIMIT       0x10000
+#define TL_ALIGN_SIZE       0x1000
 #define TL_PROGRAM          "program"
 
 U64 * TL_Base;
@@ -278,6 +279,7 @@ Bool TL_Loader()
     U64 num_blocks;
     U64 offset;
     U8 * base_copy;
+    U8 * true_base;
     U8 * table_entry;
     U8 * file_entry;
     U64 i, tmp;
@@ -305,14 +307,18 @@ Bool TL_Loader()
     "number of blocks %d.\n", num_blocks;
 
     // allocate
-    TL_Base = MAlloc (TL_MAX_HEAP_SIZE + header.total_size);
-    "base %p.\n", TL_Base;
+    true_base = MAlloc (TL_MAX_HEAP_SIZE + header.total_size + TL_ALIGN_SIZE);
+    MemSet (true_base, 0x0,
+            TL_MAX_HEAP_SIZE + header.total_size + TL_ALIGN_SIZE);
 
-    MemSet (TL_Base, 0x0, TL_MAX_HEAP_SIZE + header.total_size);
-
-    // Make aliases to TL_Base
-    offset = TL_To_Int (TL_Base);
+    // round up to page
+    offset = TL_To_Int (true_base);
+    offset = (offset + TL_ALIGN_SIZE - 1) / TL_ALIGN_SIZE;
+    offset *= TL_ALIGN_SIZE;
+    TL_Base = TL_To_Ptr (offset);
     base_copy = TL_To_Ptr (offset);
+
+    "base %p (aligned from %p)\n", TL_Base, true_base;
 
     for (i = 0; i < num_blocks; i++) {
         file_entry = base_copy + (i * BLK_SIZE);
@@ -362,7 +368,7 @@ Bool TL_Loader()
     TL_Launch;
     "\nreturned from program\n";
     Free (TL_Argv);
-    Free (TL_Base);
+    Free (true_base);
     for (i = 0; i < TL_MAX_FDS; i++) {
         if (TL_FD_Handle[i].base != NULL) {
             Free (TL_FD_Handle[i]);

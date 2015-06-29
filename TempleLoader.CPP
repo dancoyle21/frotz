@@ -198,7 +198,7 @@ U64 TL_Syscall_Brk (U64 pos)
     if (pos > TL_Break_End) {
         pos = TL_Break_End;
     }
-    "brk %p, %d bytes\n", TL_To_Ptr (pos), pos - TL_Break_Start;
+    // "brk %p, %d bytes\n", TL_To_Ptr (pos), pos - TL_Break_Start;
     return pos;
 }
 
@@ -294,9 +294,14 @@ _TL_SYSCALL_POINT::
     PUSH    RDI
     CALL    &TL_Syscall
 
-    MOV     I64 [&TL_Temporary],RAX
+    // returned value will be restored by POP_REGS:
+    // RSP[0*8] is r15
+    // RSP[1*8] is r14
+    // ...
+    // RSP[14*8] is rax
+    // 14*8 = 112
+    MOV     I64 [RSP+112],RAX
     POP_REGS
-    MOV     RAX,I64 [&TL_Temporary]
     RET
     ALIGN   8,OC_NOP
 }

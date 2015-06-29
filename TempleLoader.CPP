@@ -11,6 +11,8 @@ U64 * TL_Restore_SP;
 U64 * TL_Temporary;
 U64 TL_Break_Start;
 U64 TL_Break_End;
+U64 TL_Program_Start;
+U64 TL_Program_End;
 
 
 class TL_FD
@@ -200,7 +202,32 @@ U64 TL_Syscall_Brk (U64 pos)
     return pos;
 }
 
-U64 TL_Syscall(U64 number, U64 p0, U64 p1, U64 p2)
+U0 TL_Register_Dump (U64 * rax)
+{
+    U64 i, j, p;
+    j = 0;
+    for (i = 15; i >= 8; i--) {
+        "r%d = %08x\n", i, rax[j];
+        j++;
+    }
+    "rdi = %08x\n", rax[j]; j++;
+    "rsi = %08x\n", rax[j]; j++;
+    "rbp = %08x\n", rax[j]; j++;
+    "rbx = %08x\n", rax[j]; j++;
+    "rdx = %08x\n", rax[j]; j++;
+    "rcx = %08x\n", rax[j]; j++;
+    "rax = %08x\n", rax[j]; j++;
+    "return %08x -> %08x\n", rax[j], rax[j] - TL_Program_Start;
+    "rsp %p\n", &rax[j]; j++;
+    for (i = 0; i < 2048; i++) {
+        p = rax[j]; j++;
+        if ((p > TL_Program_Start) && (p < TL_Program_End)) {
+            "above[%d] = %08x -> %08x\n", i, p, p - TL_Program_Start;
+        }
+    }
+}
+
+U64 TL_Syscall(U64 number, U64 p0, U64 p1, U64 p2, U64 * rax)
 {
     switch (number) {
         case 0:
@@ -223,8 +250,10 @@ U64 TL_Syscall(U64 number, U64 p0, U64 p1, U64 p2)
             // time
             return 1400000000;
         default:
-            "\n\nunsupported system call reached, number = %d, p0 = %d, p1 = %d, p2 = %d\n",
-                number, p0, p1, p2;
+            "\n\nunsupported system call reached! number = %d\n", number;
+            "p0 = %x (%d), p1 = %x (%d), p2 = %x (%d)\n",
+                p0, p0, p1, p1, p2, p2;
+            TL_Register_Dump (rax);
             TL_Restore_Point;
             return 0;
     }
@@ -250,12 +279,15 @@ _TL_LAUNCH::
 
     ALIGN   8,OC_NOP
 _TL_SYSCALL_POINT::
+
     PUSH_REGS
     // TempleOS: push args on stack in right-to-left order
     //           Called function cleans up the stack
     // Linux: args in registers (l->r): RDI, RSI, RDX, RCX
     // Both: returned value in RAX
-
+   
+    MOV     RAX, RSP
+    PUSH    RAX
     PUSH    RCX
     PUSH    RDX
     PUSH    RSI
@@ -345,9 +377,18 @@ Bool TL_Loader()
     }
     "relocated blocks\n";
 
+    // Zero area occupied by relocations
+    // (It's also the BSS area)
+    table_entry = base_copy + header.load_size;
+    MemSet (table_entry, 0, header.total_size - header.load_size);
+
     // Heap space:
     TL_Break_Start = header.end_address + offset;
     TL_Break_End = header.total_size + TL_MAX_HEAP_SIZE + offset;
+
+    // Program space
+    TL_Program_Start = offset;
+    TL_Program_End = offset + header.fini_address;
 
     // Setup environment
     TL_Base[2] = &TL_Syscall_Point;

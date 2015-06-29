@@ -8,7 +8,6 @@
 U64 * TL_Base;
 U64 * TL_Argv;
 U64 * TL_Restore_SP;
-U64 * TL_Temporary;
 U64 TL_Break_Start;
 U64 TL_Break_End;
 U64 TL_Program_Start;
@@ -87,6 +86,7 @@ U64 TL_Syscall_Read (U64 fd, U8 * buf, U64 size)
     if (fd == 0) {
         // read from stdin
         buf[0] = GetChar (NULL, FALSE, FALSE);
+        '' buf[0];
         return 1;
     }
     // read from some other file handle (check the handle first)
@@ -198,7 +198,6 @@ U64 TL_Syscall_Brk (U64 pos)
     if (pos > TL_Break_End) {
         pos = TL_Break_End;
     }
-    // "brk %p, %d bytes\n", TL_To_Ptr (pos), pos - TL_Break_Start;
     return pos;
 }
 

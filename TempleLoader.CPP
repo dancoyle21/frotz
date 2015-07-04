@@ -1,9 +1,9 @@
+// TempleOS loader for specially-built Linux programs 
 
 #define TL_MAX_HEAP_SIZE    0x100000
 #define TL_MAX_FDS          100
 #define TL_SIZE_LIMIT       0x10000
 #define TL_ALIGN_SIZE       0x1000
-#define TL_PROGRAM          "program"
 
 U64 * TL_Base;
 U64 * TL_Argv;
@@ -36,19 +36,17 @@ class TL_ProgramHeader
     U8 pad[BLK_SIZE-(7*8)];
 };
 
-asm {
-    ALIGN   8,OC_NOP
-_TL_RESTORE_POINT::
+U0 TL_Restore_Point ()
+{
+    // The signature of this function must match TL_Launch
+    asm {
+        MOV     RCX,I64 [&TL_Restore_SP]
+        MOV     RSP,RCX
 
-    MOV     RCX,I64 [&TL_Restore_SP] MOV     RSP,RCX
-
-    POP_REGS
-
-    POP     RBP
-    RET
-
+        POP_REGS
+        POP     RBP
+    }
 }
-_extern _TL_RESTORE_POINT U0 TL_Restore_Point();
 
 U8 * TL_To_Ptr (U64 p0)
 {
@@ -261,54 +259,55 @@ U64 TL_Syscall(U64 number, U64 p0, U64 p1, U64 p2, U64 * rax)
     return 0;
 }
 
-asm {
-_TL_LAUNCH::
-    PUSH    RBP
-    MOV     RBP, RSP
+U0 TL_Launch ()
+{
+    // The signature of this function must match TL_Restore_Point
+    asm {
+        PUSH    RBP
+        MOV     RBP, RSP
 
-    PUSH_REGS
+        PUSH_REGS
 
-    MOV     RCX,RSP
-    MOV     I64 [&TL_Restore_SP], RCX
-    MOV     RDI,I64 [&TL_Argc]
-    MOV     RSI,I64 [&TL_Argv]
-    MOV     RCX,I64 [&TL_Base]
+        MOV     RCX,RSP
+        MOV     I64 [&TL_Restore_SP], RCX
+        MOV     RDI,I64 [&TL_Argc]
+        MOV     RSI,I64 [&TL_Argv]
+        MOV     RCX,I64 [&TL_Base]
 
-    CALL    RCX
+        CALL    RCX
 
-    HLT
-
-    ALIGN   8,OC_NOP
-_TL_SYSCALL_POINT::
-
-    PUSH_REGS
-    // TempleOS: push args on stack in right-to-left order
-    //           Called function cleans up the stack
-    // Linux: args in registers (l->r): RDI, RSI, RDX, RCX
-    // Both: returned value in RAX
-   
-    MOV     RAX, RSP
-    PUSH    RAX
-    PUSH    RCX
-    PUSH    RDX
-    PUSH    RSI
-    PUSH    RDI
-    CALL    &TL_Syscall
-
-    // returned value will be restored by POP_REGS:
-    // RSP[0*8] is r15
-    // RSP[1*8] is r14
-    // ...
-    // RSP[14*8] is rax
-    // 14*8 = 112
-    MOV     I64 [RSP+112],RAX
-    POP_REGS
-    RET
-    ALIGN   8,OC_NOP
+        HLT
+    }
 }
 
-_extern _TL_LAUNCH U0 TL_Launch();
-_extern _TL_SYSCALL_POINT U0 TL_Syscall_Point();
+U0 TL_Syscall_Point ()
+{
+    // This function is called from the Linux program
+    asm {
+        PUSH_REGS
+        // TempleOS: push args on stack in right-to-left order
+        //           Called function cleans up the stack
+        // Linux: args in registers (l->r): RDI, RSI, RDX, RCX
+        // Both: returned value in RAX
+       
+        MOV     RAX, RSP
+        PUSH    RAX
+        PUSH    RCX
+        PUSH    RDX
+        PUSH    RSI
+        PUSH    RDI
+        CALL    &TL_Syscall
+
+        // returned value will be restored by POP_REGS:
+        // RSP[0*8] is r15
+        // RSP[1*8] is r14
+        // ...
+        // RSP[14*8] is rax
+        // 14*8 = 112
+        MOV     I64 [RSP+112],RAX
+        POP_REGS
+    }
+}
 
 Bool TL_Loader(...)
 {

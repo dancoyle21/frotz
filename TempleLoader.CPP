@@ -83,10 +83,15 @@ U64 TL_Syscall_Read (U64 fd, U8 * buf, U64 size)
         TL_Restore_Point;
     }
     if (fd == 0) {
-        // read from stdin
-        buf[0] = GetChar (NULL, FALSE, FALSE);
-        '' buf[0];
-        return 1;
+        // read \n-terminated string from stdin
+        size = GetS (buf, size);
+        if (size > 0) {
+            buf[size] = '\n';
+        } else {
+            "\n\nGetS returned nothing\n";
+            TL_Restore_Point;
+        }
+        return size + 1;
     }
     // read from some other file handle (check the handle first)
     if ((fd >= TL_MAX_FDS) || (TL_FD_Handle[fd].base == NULL)) {
@@ -168,7 +173,7 @@ U64 TL_Syscall_Open (U8 * buf, U64 mode)
         U8 * file_entry = TL_FD_Handle[rc].base + (i * BLK_SIZE);
         if (!FRBlks (f, file_entry, i, 1)) {
             "\n\nunable to read block %d from file '%s'\n", i, buf;
-            return FALSE;
+            TL_Restore_Point;
         }
     }
     FClose (f);

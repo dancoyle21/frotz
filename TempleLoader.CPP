@@ -227,6 +227,36 @@ U64 TL_Syscall_Close (U64 fd)
     return 0;
 }
 
+U64 TL_Syscall_LSeek (U64 fd, I64 offset, U64 whence)
+{
+    if ((fd >= TL_MAX_FDS) || (fd <= 2) || (TL_FD_Handle[fd].f == NULL)) {
+        "\n\nunsupported lseek for fd %d\n", fd;
+        TL_Restore_Point;
+    }
+    switch (whence) {
+        case 0:
+            // SEEK_SET
+            break;
+        case 1:
+            // SEEK_CUR
+            offset += TL_FD_Handle[fd].position;
+            break;
+        case 2:
+            // SEEK_END
+            offset += FSize (TL_FD_Handle[fd].f);
+            break;
+        default:
+            "\n\nunsupported lseek whence %d for fd %d\n", whence, fd;
+            TL_Restore_Point;
+    }
+    if ((offset < 0) || (offset > FSize (TL_FD_Handle[fd].f))) {
+        // return EINVAL
+        return -22;
+    }
+    TL_FD_Handle[fd].position = offset;
+    return offset;
+}
+
 U64 TL_Syscall_Brk (U64 pos)
 {
     // brk (allocate memory)
@@ -275,6 +305,8 @@ U64 TL_Syscall(U64 number, U64 p0, U64 p1, U64 p2, U64 * rax)
             return TL_Syscall_Open (TL_To_Ptr (p0), p1);
         case 3:
             return TL_Syscall_Close (p0);
+        case 8:
+            return TL_Syscall_LSeek (p0, p1, p2);
         case 12:
             return TL_Syscall_Brk (p0);
         case 16:

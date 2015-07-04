@@ -8,6 +8,7 @@
 U64 * TL_Base;
 U64 * TL_Argv;
 U64 * TL_Restore_SP;
+U64 TL_Argc;
 U64 TL_Break_Start;
 U64 TL_Break_End;
 U64 TL_Program_Start;
@@ -184,6 +185,7 @@ U64 TL_Syscall_Close (U64 fd)
         TL_Restore_Point;
     }
     Free (TL_FD_Handle[fd].base);
+    TL_FD_Handle[fd].base = NULL;
     TL_FD_Handle[fd].position = 0;
     TL_FD_Handle[fd].remaining = 0;
     return 0;
@@ -268,7 +270,7 @@ _TL_LAUNCH::
 
     MOV     RCX,RSP
     MOV     I64 [&TL_Restore_SP], RCX
-    MOV     RDI,2
+    MOV     RDI,I64 [&TL_Argc]
     MOV     RSI,I64 [&TL_Argv]
     MOV     RCX,I64 [&TL_Base]
 
@@ -308,7 +310,7 @@ _TL_SYSCALL_POINT::
 _extern _TL_LAUNCH U0 TL_Launch();
 _extern _TL_SYSCALL_POINT U0 TL_Syscall_Point();
 
-Bool TL_Loader()
+Bool TL_Loader(...)
 {
     TL_ProgramHeader header;
     CFile *f;
@@ -394,12 +396,16 @@ Bool TL_Loader()
     TL_Program_Start = offset;
     TL_Program_End = offset + header.fini_address;
 
-    // Setup environment
+    // Setup environment.
+    // Args are copied from built-in variables argc and argv
     TL_Base[2] = &TL_Syscall_Point;
-    TL_Argv = MAlloc (64);
-    MemSet (TL_Argv, 0x00, 64);
+    TL_Argv = MAlloc ((argc * 8) + 64);
+    MemSet (TL_Argv, 0x00, (argc * 8) + 64);
     TL_Argv[0] = "loader";
-    TL_Argv[1] = "detective.z5";
+    TL_Argc = argc + 1;
+    for (i = 0; i < argc; i++) {
+        TL_Argv[i + 1] = TL_To_Ptr (argv[i]);
+    }
     for (i = 0; i < TL_MAX_FDS; i++) {
         TL_FD_Handle[i].base = NULL;
         TL_FD_Handle[i].remaining = 0;
@@ -423,5 +429,10 @@ Bool TL_Loader()
     return TRUE;
 }
 
+U0 TL_Demo ()
+{
+    TL_Loader ("detective.z5");
+}
 
-TL_Loader;
+TL_Demo;
+

@@ -76,11 +76,56 @@ U64 TL_Syscall_Ioctl (U64 p0, U64 p1, U64 p2)
     }
 }
 
+U0 TL_Read_Write_Common (Bool write, U64 fd, U8 * rbuf, U64 rsize)
+{
+    U64 blk_copy, blk_offset, i, num_blocks;
+    U8 tmp[BLK_SIZE];
+
+    num_blocks = (FSize (TL_FD_Handle[fd].f) + BLK_SIZE - 1) / BLK_SIZE;
+
+    // for each block involved in this read/write:
+    for (i = TL_FD_Handle[fd].position / BLK_SIZE; rsize > 0; i++) {
+
+        if (i < num_blocks) {
+            if (!FRBlks (TL_FD_Handle[fd].f, tmp, i, 1)) {
+                "\n\nunable to read block %d from fd %d\n", i, fd;
+                TL_Restore_Point;
+            }
+        } else {
+            MemSet (tmp, 0, BLK_SIZE);
+        }
+        // where does the requested data begin within the block?
+        blk_offset = TL_FD_Handle[fd].position - (i * BLK_SIZE);
+        // how much data will be read within this block?
+        blk_copy = rsize;
+        if (rsize > (BLK_SIZE - blk_offset)) {
+            blk_copy = BLK_SIZE - blk_offset;
+        }
+
+        if (write) {
+            // copy from buffer to block (modifying the block)
+            MemCpy (TL_To_Ptr (TL_To_Int (tmp) + blk_offset), rbuf, blk_copy);
+
+            // write back
+            if (!FWBlks (TL_FD_Handle[fd].f, tmp, i, 1)) {
+                "\n\nunable to write block %d from fd %d\n", i, fd;
+                TL_Restore_Point;
+            }
+        } else {
+            // copy from block to buffer
+            MemCpy (rbuf, TL_To_Ptr (TL_To_Int (tmp) + blk_offset), blk_copy);
+        }
+        // advance the counters
+        TL_FD_Handle[fd].position += blk_copy;
+        rsize -= blk_copy;
+        rbuf = TL_To_Ptr (TL_To_Int (rbuf) + blk_copy);
+    }
+}
+
+
 U64 TL_Syscall_Read (U64 fd, U8 * buf, U64 size)
 {
-    U64 rsize, blk_copy, blk_offset, i, remaining, total_size;
-    U8 tmp[BLK_SIZE];
-    U8 * rbuf;
+    U64 remaining, total_size;
 
     if ((size == 0) || (size > TL_SIZE_LIMIT)) {
         "\n\nunsupported read of size %d to fd %d\n", size, fd;
@@ -107,30 +152,8 @@ U64 TL_Syscall_Read (U64 fd, U8 * buf, U64 size)
     if (size > remaining) {
         size = remaining;
     }
-    rsize = size;
-    rbuf = buf;
 
-    // for each block involved in this read:
-    for (i = TL_FD_Handle[fd].position / BLK_SIZE; rsize > 0; i++) {
-   
-        if (!FRBlks (TL_FD_Handle[fd].f, tmp, i, 1)) {
-            "\n\nunable to read block %d from fd %d\n", i, fd;
-            TL_Restore_Point;
-        }
-        // where does the requested data begin within the block?
-        blk_offset = TL_FD_Handle[fd].position - (i * BLK_SIZE);
-        // how much data will be read within this block?
-        blk_copy = rsize;
-        if (rsize > (BLK_SIZE - blk_offset)) {
-            blk_copy = BLK_SIZE - blk_offset;
-        }
-        // copy from block to buffer
-        MemCpy (rbuf, TL_To_Ptr (TL_To_Int (tmp) + blk_offset), blk_copy);
-        // advance the counters
-        TL_FD_Handle[fd].position += blk_copy;
-        rsize -= blk_copy;
-        rbuf = TL_To_Ptr (TL_To_Int (rbuf) + blk_copy);
-    }
+    TL_Read_Write_Common (FALSE, fd, buf, size);
     //"read %d bytes from fd %d to %p\n", size, fd, buf;
     return size;
 }
@@ -160,9 +183,7 @@ U64 TL_Syscall_Write (U64 fd, U8 * buf, U64 size)
         }
         return size;
     }
-
-    "\n\nTEMPORARY halt on write to fd %d size %d\n", fd, size;
-    TL_Restore_Point;
+    TL_Read_Write_Common (TRUE, fd, buf, size);
     return size;
 }
 
@@ -195,6 +216,7 @@ U64 TL_Syscall_Open_FD (Bool write, CFile * f)
 
 U64 TL_Syscall_Open (U8 * buf, U64 mode)
 {
+    CFile * f;
     switch (mode & 3) {
         case 0x0:
             // read mode
@@ -204,6 +226,12 @@ U64 TL_Syscall_Open (U8 * buf, U64 mode)
             switch (mode) {
                 case 0x241:
                     // write with O_CREAT and O_TRUNC flags
+                    f = FOpen (buf, "r");
+                    if (f) {
+                        // file exists, delete it
+                        FClose (f);
+                        Del (buf);
+                    }
                     return TL_Syscall_Open_FD (TRUE, FOpen (buf, "w+"));
                 default:
                     break;

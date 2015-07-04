@@ -63,29 +63,32 @@ static int64_t do_ioctl (int64_t p0, int64_t p1, int64_t p2)
 static int64_t do_open (int64_t p0, int64_t p1)
 {
     unsigned i;
+    FILE * fd;
 
-    if ((p1 & O_WRONLY) || (p1 & O_RDWR)) {
+    if ((p1 & 3) == 0) {
+        fd = fopen ((const char *) p0, "rb");
+    } else if (p1 == 0x241) {
+        fd = fopen ((const char *) p0, "wb");
+    } else {
         printf ("Unsupported open mode for '%s': 0x%x\n",
                 (const char *) p0, (unsigned) p1);
         exit (1);
-    } else {
-        FILE * fd = fopen ((const char *) p0, "rb");
-        if (fd == NULL) {
-            /* file not found, perhaps */
-            return -1;
-        }
-        for (i = 0; i < MAX_FD_HANDLES; i++) {
-            if (fd_handle[i] == NULL) {
-                fd_handle[i] = fd;
-                fd = NULL;
-                printf ("open '%s' -> fd %u\n", (const char *) p0, i);
-                return i;
-            }
-        }
-        printf ("No handles available for '%s'\n",
-                (const char *) p0);
-        exit (1);
     }
+    if (fd == NULL) {
+        /* file not found, perhaps? */
+        return -1;
+    }
+    for (i = 0; i < MAX_FD_HANDLES; i++) {
+        if (fd_handle[i] == NULL) {
+            fd_handle[i] = fd;
+            fd = NULL;
+            printf ("open '%s' -> fd %u\n", (const char *) p0, i);
+            return i;
+        }
+    }
+    printf ("No handles available for '%s'\n",
+            (const char *) p0);
+    exit (1);
     return -1;
 }
 
@@ -102,6 +105,7 @@ int64_t syscall_handler (int64_t syscall_number,
         case 0:
         case 1:
         case 3:
+        case 8:
             if ((p0 < 0) || (p0 >= (int64_t) MAX_FD_HANDLES)
             || (fd_handle[p0] == NULL)) {
                 printf ("Invalid handle: 0x%u\n", (unsigned) p0);
@@ -111,7 +115,9 @@ int64_t syscall_handler (int64_t syscall_number,
                 case 0:
                     fflush (stdout);
                     if ((p0 == STDIN_FILENO) && (p2 > 0)) {
-                        p2 = 1;
+                        char * s = (char *) p1;
+                        fgets (s, p2, stdin);
+                        return strlen (s);
                     }
                     rc = fread ((void *) p1, 1, p2, fd_handle[p0]);
                     if (p0 != STDIN_FILENO) {
@@ -124,6 +130,9 @@ int64_t syscall_handler (int64_t syscall_number,
                     rc = fwrite ((void *) p1, 1, p2, fd_handle[p0]);
                     fflush (fd_handle[p0]);
                     break;
+                case 8:
+                    fseek (fd_handle[p0], p1, p2);
+                    return ftell (fd_handle[p0]);
                 default:
                     fclose (fd_handle[p0]);
                     fd_handle[p0] = NULL;

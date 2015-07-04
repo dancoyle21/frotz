@@ -320,17 +320,24 @@ Bool TL_Loader(...)
     U8 * true_base;
     U8 * table_entry;
     U8 * file_entry;
+    U8 * program;
     U64 i, tmp;
     U32 reloc;
 
+    if (argc < 1) {
+        "Pass the program file name to TL_Loader\n";
+        return FALSE;
+    }
+    program = TL_To_Ptr (argv[0]);
+
     // read first block
-    f = FOpen (TL_PROGRAM, "r");
+    f = FOpen (program, "r");
     if (!f) {
-        "Unable to open '%s' file\n\n", TL_PROGRAM;
+        "Unable to open '%s' file\n\n", program;
         return FALSE;
     }
     if (!FRBlks (f, &header, 0, 1)) {
-        "Unable to read header from '%s' file\n\n", TL_PROGRAM;
+        "Unable to read header from '%s' file\n\n", program;
         return FALSE;
     }
     "program header:\n";
@@ -339,6 +346,11 @@ Bool TL_Loader(...)
     "load_size %d.\n", header.load_size;
     "total_size %d.\n", header.total_size;
 
+    if ((header.start >> 16) != 0x77646a000000) {
+        FClose (f);
+        "This program file is not valid.\n";
+        return FALSE;
+    }
 
     num_blocks = (header.total_size + BLK_SIZE - 1) / BLK_SIZE;
 
@@ -361,7 +373,7 @@ Bool TL_Loader(...)
     for (i = 0; i < num_blocks; i++) {
         file_entry = base_copy + (i * BLK_SIZE);
         if (!FRBlks (f, file_entry, i, 1)) {
-            "Unable to read content from '%s' file\n\n", TL_PROGRAM;
+            "Unable to read content from '%s' file\n\n", program;
             return FALSE;
         }
     }
@@ -402,9 +414,9 @@ Bool TL_Loader(...)
     TL_Argv = MAlloc ((argc * 8) + 64);
     MemSet (TL_Argv, 0x00, (argc * 8) + 64);
     TL_Argv[0] = "loader";
-    TL_Argc = argc + 1;
-    for (i = 0; i < argc; i++) {
-        TL_Argv[i + 1] = TL_To_Ptr (argv[i]);
+    TL_Argc = argc;
+    for (i = 1; i < argc; i++) {
+        TL_Argv[i] = TL_To_Ptr (argv[i]);
     }
     for (i = 0; i < TL_MAX_FDS; i++) {
         TL_FD_Handle[i].base = NULL;
@@ -431,7 +443,7 @@ Bool TL_Loader(...)
 
 U0 TL_Demo ()
 {
-    TL_Loader ("detective.z5");
+    TL_Loader ("program", "detective.z5");
 }
 
 TL_Demo;

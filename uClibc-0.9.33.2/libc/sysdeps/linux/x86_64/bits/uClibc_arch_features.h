@@ -6,7 +6,7 @@
 #define _BITS_UCLIBC_ARCH_FEATURES_H
 
 /* instruction used when calling abort() to kill yourself */
-#define __UCLIBC_ABORT_INSTRUCTION__ "hlt"
+#define __UCLIBC_ABORT_INSTRUCTION__ ".global _tos_hlt\ncall _tos_hlt\n"
 
 /* can your target use syscall6() for mmap ? */
 #define __UCLIBC_MMAP_HAS_6_ARGS__

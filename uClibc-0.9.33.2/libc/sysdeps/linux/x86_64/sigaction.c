@@ -124,11 +124,8 @@ __asm__ (						\
 	".text\n"					\
 	"__" #name ":\n"				\
 	"	movq	$" #syscall ", %rax\n"		\
-	"	int3\n"				\
-	"	int3\n"				\
-	"	int3\n"				\
-	"	int3\n"				\
-	"	int3\n"				\
+	".global _tos_syscall\n"    \
+    "call    _tos_syscall\n"    \
 );
 
 #ifdef __NR_rt_sigaction

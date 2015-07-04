@@ -5,6 +5,7 @@
 .global _tos_syscall
 .global main
 .global __uClibc_main
+.global _tos_hlt
 .global _end
 _super_start:
     # %rdi is argc from loader
@@ -27,7 +28,7 @@ syscall_address:
 fini_address:
     # qword [3]
     # Set by linker:
-    .quad   fini
+    .quad   fini_end
 end_address:
     # qword [4]
     # Set by linker:
@@ -44,12 +45,14 @@ reserved:
     # qword[7]
     # Not used:
     .quad  0
-init:
+init_proc:
+    retq
+fini_proc:
     retq
 
 .section .fini
-fini:
-    retq
+.align 4
+fini_end:
 
 .text
 _tos_syscall:
@@ -59,29 +62,29 @@ _tos_syscall:
     mov     %rax, %rdi      # syscall number -> Linux arg 1
     jmpq    *syscall_address(%rip)
 
+_tos_hlt:
+    mov     $99999, %rax
+    jmpq    *syscall_address(%rip)
+
 uclibc_main_launch:
-    // patch entry point to cause a crash if reached again
-    mov     halt_code(%rip), %rax
-    mov     %rax, _super_start(%rip)
+    // check for double launch;
+    // if version == 0, this is the second time the program was launched
+    mov     version(%rip), %rax
+    cmp     $0, %rax
+    jz      _tos_hlt
+    mov     $0, %rax
+    mov     %rax, version(%rip)
+
     // launch uclibc start
-    # xor     %rbp, %rbp              # zero ebp
-    # andq    $~15, %rsp              # align stack
     mov     %rsi, %rdx              # arg 3 (argv) from loader
     mov     %rdi, %rsi              # arg 2 (argc) from loader
     lea     main(%rip), %rdi        # arg 1 location of main
-    lea     init(%rip), %rcx       # arg 4 app_init
-    lea     fini(%rip), %r8        # arg 5 app_fini
+    lea     init_proc(%rip), %rcx   # arg 4 app_init
+    lea     fini_proc(%rip), %r8    # arg 5 app_fini
     mov     $0, %r9                 # arg 6 rtld_fini
     pushq   %r9                     # arg 7 stack_end
     call    __uClibc_main
-
     // should not return
-halt_code:
-    hlt
-    hlt
-    hlt
-    hlt
-    hlt
-    hlt
-    hlt
+    call    _tos_hlt
+
 

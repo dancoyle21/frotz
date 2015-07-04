@@ -128,7 +128,8 @@ _start:
 	call __uClibc_main
 #endif
 
-	hlt        /* Crash if somehow `exit' does return.  */
+.global _tos_hlt
+	call _tos_hlt /* Crash if somehow `exit' does return.  */
 .size _start,.-_start
 
 /* Define a symbol for the first piece of initialized data. */

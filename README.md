@@ -61,8 +61,8 @@ You can load other games, some others are included in the CD image. For example:
     TL_Loader ("vgame.z8");
 
 These are favourites of mine, for various reasons. You can download
-more from http://www.ifarchive.org/ which also has a rating system.
-vgame is excellent, detective is... not.
+more from http://ifdb.tads.org/ which has a rating system. vgame 
+is excellent, detective is... a classic, of a sort.
 
 
 # This isn't really a port
@@ -125,5 +125,12 @@ TempleOS hits the reset button on all of these things: programmers' tools
 are all different. I depend so heavily on the tools that I normally use.
 It's a real culture shock to work in an environment where none of
 them are available. But that's why it's a challenge.
+
+
+# Rebuilding
+
+Full source code is available from https://github.com/jwhitham/frotz,
+run the "build.sh" script on Linux to rebuild Frotz, uClibc, and the
+"program" file.
 
 

@@ -8,8 +8,8 @@ cd loader
 
 as -o setup.o setup.s 
 
-OBJS="setup.o src/frotz_common.a src/frotz_dumb.a \
-        uClibc-0.9.33.2/lib/libc.a"
+OBJS="setup.o ../frotz/src/frotz_common.a ../frotz/src/frotz_dumb.a \
+        ../uClibc-0.9.33.2/lib/libc.a"
 ld -o unoffset.elf -Tunoffset.x $OBJS
 ld -o offset.elf -Toffset.x $OBJS
 
@@ -26,7 +26,7 @@ cd ..
 
 cp ~/Downloads/vgame.z8 . || true
 genisoimage -o demo.iso -r -J \
-    TempleLoader.CPP Frotz.CPP *.z8 *.z5 program README
+    TempleLoader.CPP Frotz.CPP *.z8 *.z5 program README*
 
 # on windows...
 # gcc -m64 -o winloader.exe winloader.c load.c syscall.c winshims.s -Wall -g

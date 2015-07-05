@@ -1,8 +1,8 @@
 This is a port of "frotz" for TempleOS. This allows most Z-machine games
 to be played on TempleOS.
 
-    frotz       https://github.com/DavidGriffith/frotz
-    TempleOS    http://www.templeos.org/
+* frotz       https://github.com/DavidGriffith/frotz
+* TempleOS    http://www.templeos.org/
 
 ![Screenshot](templeos.png)
 
@@ -134,9 +134,12 @@ involves translating the calling convention from Linux to TempleOS.
 This translation is performed in assembly code.
 
 The "exit" system call works like the C API function "longjmp", i.e.
-it restores registers including the stack pointer. The code for doing
+it restores registers including the stack pointer, unwinding execution
+to some point reached earlier in the call tree. The code for doing
 the longjmp-like operation is in TL_Restore_Point. The corresponding
-setjmp forms part of the launcher (TL_Launch).
+setjmp forms part of the launcher (TL_Launch). This technique is
+necessary because TempleOS programs are expected to return to the shell.
+They can't simply abandon execution and expect the OS to clean up.
 
 The program binary has to be compiled as position-independent code
 because TempleOS does not use virtual memory features. All programs

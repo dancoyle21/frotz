@@ -1,8 +1,8 @@
-// TempleOS loader for specially-built Linux programs 
+// TempleOS loader for specially-built Linux programs
+// See README
 
-#define TL_MAX_HEAP_SIZE    0x100000
-#define TL_MAX_FDS          100
-#define TL_SIZE_LIMIT       0x10000
+#define TL_MAX_HEAP_SIZE    0x200000
+#define TL_MAX_FDS          10
 #define TL_ALIGN_SIZE       0x1000
 
 U64 * TL_Base;
@@ -127,9 +127,8 @@ U64 TL_Syscall_Read (U64 fd, U8 * buf, U64 size)
 {
     U64 remaining, total_size;
 
-    if ((size == 0) || (size > TL_SIZE_LIMIT)) {
-        "\n\nunsupported read of size %d to fd %d\n", size, fd;
-        TL_Restore_Point;
+    if (size == 0) {
+        return 0;
     }
     if (fd == 0) {
         // read \n-terminated string from stdin
@@ -166,10 +165,6 @@ U64 TL_Syscall_Write (U64 fd, U8 * buf, U64 size)
         && ((TL_FD_Handle[fd].f == NULL) || (!TL_FD_Handle[fd].write)))) {
 
         "\n\nunsupported write to fd %d\n", fd;
-        TL_Restore_Point;
-    }
-    if ((size == 0) || (size > TL_SIZE_LIMIT)) {
-        "\n\nunsupported write of size %d to fd %d\n", size, fd;
         TL_Restore_Point;
     }
     if (fd <= 2) {
@@ -421,11 +416,7 @@ Bool TL_Loader(...)
     U64 i, tmp;
     U32 reloc;
 
-    if (argc < 1) {
-        "Pass the program file name to TL_Loader\n";
-        return FALSE;
-    }
-    program = TL_To_Ptr (argv[0]);
+    program = "program";
 
     // read first block
     f = FOpen (program, "r");
@@ -510,10 +501,10 @@ Bool TL_Loader(...)
     TL_Base[2] = &TL_Syscall_Point;
     TL_Argv = MAlloc ((argc * 8) + 64);
     MemSet (TL_Argv, 0x00, (argc * 8) + 64);
-    TL_Argv[0] = "loader";
-    TL_Argc = argc;
-    for (i = 1; i < argc; i++) {
-        TL_Argv[i] = TL_To_Ptr (argv[i]);
+    TL_Argv[0] = program;
+    TL_Argc = argc + 1;
+    for (i = 0; i < argc; i++) {
+        TL_Argv[i + 1] = TL_To_Ptr (argv[i]);
     }
     for (i = 0; i < TL_MAX_FDS; i++) {
         TL_FD_Handle[i].f = NULL;
@@ -535,11 +526,4 @@ Bool TL_Loader(...)
     //"memory freed\n";
     return TRUE;
 }
-
-U0 TL_Demo ()
-{
-    TL_Loader ("program", "advent.z5");
-}
-
-TL_Demo;
 

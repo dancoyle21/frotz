@@ -7,8 +7,7 @@ to be played on TempleOS.
 ![Screenshot](templeos.png)
 
 
-Instructions
-------------
+# Instructions
 
 1. download the "demo.iso" CDROM image
     https://raw.githubusercontent.com/jwhitham/frotz/master/demo.iso
@@ -62,8 +61,7 @@ more from http://www.ifarchive.org/ which also has a rating system.
 vgame is excellent, detective is... not.
 
 
-This isn't really a port
-------------------------
+# This isn't really a port
 
 Unfortunately, TempleOS has neither a C compiler nor a C standard library
 (LibC). This makes it difficult to port any software to TempleOS, as 
@@ -99,8 +97,7 @@ The limitations are:
 * the size of the heap is restricted by the loader.
 
 
-Why?
-----
+# Why?
 
 Because.
 

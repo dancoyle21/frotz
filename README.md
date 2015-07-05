@@ -19,13 +19,9 @@ virtual machine software.
 3. Use the mouse to increase the size of the terminal window to the full 
 80 columns provided by TempleOS.
 
-4. Switch to the CDROM root directory.
+4. Switch to the CDROM root directory, load the loader, and start the game:
 ```
     Cd("T:/");
-```
-
-5. Enter these commands:
-```
     #include "Frotz";
     Advent;
 ```
@@ -86,8 +82,8 @@ x86_64 machine instructions.
 
 I decided that the quickest way to port "frotz" to TempleOS was to
 compile it on Linux, statically linked against LibC (well, uClibc),
-and then write a loader for TempleOS which start the program and
-translate the Linux system calls to TempleOS system calls.
+and then write a loader for TempleOS which starts the program and
+translates (some) Linux system calls to TempleOS system calls.
 
 It worked.
 
@@ -96,9 +92,11 @@ The limitations are:
 * system calls used by the C program must be supported by the loader;
 * the C program must be statically linked, there can be no dynamic libraries;
 * no multithreading;
-* the program must use entirely position-independent code.
-* the program can't use SSE2 instructions, TempleOS doesn't support them.
+* the program must use entirely position-independent code;
+* the program can't use SSE2 instructions, TempleOS doesn't support them;
 * the size of the heap is restricted by the loader.
+
+This is not a port. It's more like an application compatiblity layer.
 
 
 # Why?
@@ -127,9 +125,35 @@ It's a real culture shock to work in an environment where none of
 them are available. But that's why it's a challenge.
 
 
+# How?
+
+Instead of executing the "syscall" instruction, my modified version 
+of uClibc jumps to a system call handler function, TL_Syscall, which
+processes the system call using native TempleOS library calls. This
+involves translating the calling convention from Linux to TempleOS.
+This translation is performed in assembly code.
+
+The "exit" system call works like the C API function "longjmp", i.e.
+it restores registers including the stack pointer. The code for doing
+the longjmp-like operation is in TL_Restore_Point. The corresponding
+setjmp forms part of the launcher (TL_Launch).
+
+The program binary has to be compiled as position-independent code
+because TempleOS does not use virtual memory features. All programs
+share the same linear address space. GCC has no difficulty producing
+position-independent code and the x86_64 instruction set supports it
+efficiently, e.g. with PC-relative jumps and calls. However, I have not
+yet found a good way to make the compiler generate position-independent
+code for global data structures, e.g. "stdout", when those structures
+themselves contain pointers. So I compute the required relocations
+by the crude trick of linking the program twice at different base
+offsets, and then scanning the resulting binary to see where relocations
+will be required. This is done in loader/make_program.py.
+
+
 # Rebuilding
 
-Full source code is available from https://github.com/jwhitham/frotz,
+Full source code is available from https://github.com/jwhitham/frotz -
 run the "build.sh" script on Linux to rebuild Frotz, uClibc, and the
 "program" file.
 

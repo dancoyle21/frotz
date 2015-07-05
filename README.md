@@ -20,11 +20,15 @@ virtual machine software.
 80 columns provided by TempleOS.
 
 4. Switch to the CDROM root directory.
+```
     Cd("T:/");
+```
 
 5. Enter these commands:
+```
     #include "Frotz";
     Advent;
+```
 
 This will run a Z-machine port of Adventure, viz.
 

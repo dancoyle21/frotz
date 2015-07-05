@@ -96,7 +96,7 @@ The limitations are:
 * the program can't use SSE2 instructions, TempleOS doesn't support them;
 * the size of the heap is restricted by the loader.
 
-This is not a port. It's more like an application compatiblity layer.
+This is not a port. It's more like an application compatibility layer.
 
 
 # Why?
@@ -105,12 +105,12 @@ Because.
 
 http://www.smbc-comics.com/index.php?db=comics&id=2158#comic
 
-TempleOS is not an alien operating system, but it is perhaps the only
-OS design after about 1980 that is not based on C. Most operating system
+TempleOS is not an alien operating system, but it is one of only a few
+OS designs made since 1980 that are not based on C. Most operating system
 designers would start with a C compiler and build their kernel using it.
 TempleOS's designer started by designing a language, writing a compiler,
-and then the kernel followed. This is an eccentric, otherworldly approach
-to OS design.
+and then a kernel and a user interface. This is an eccentric, otherworldly
+approach to OS design.
 
 Porting software to TempleOS is a challenge that goes beyond the usual
 approaches of recompiling the program and translating some 

@@ -5,9 +5,8 @@
 #  Linux:    rdi  rsi  rdx  rcx  r8  r9    callee-save: rbp, rbx, r12-r15
 #
 go_shim:
-    # args: p1, argc, argv, sp
+    # args: p1, argc, argv
 
-    mov     %r9, %rsp       # Win arg 4 -> stack pointer
     mov     $0, %rdi
     mov     %edx, %edi      # Win arg 2 -> argc -> Linux arg 1
     mov     %r8, %rsi       # Win arg 3 -> argv -> Linux arg 2

@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-DHEADLESS -O2 -g -Wall \
+CFLAGS=-DHEADLESS -O0 -g -Wall \
     -fPIC -mfpmath=387 \
     -I../uClibc-0.9.33.2/include \
     '-Dlibc_hidden_proto(x)='

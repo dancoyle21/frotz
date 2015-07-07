@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <time.h>
+#include <sys/stat.h>
 
 #include "load.h"
 
@@ -105,6 +106,7 @@ int64_t syscall_handler (int64_t syscall_number,
         case 0:
         case 1:
         case 3:
+        case 5:
         case 8:
             if ((p0 < 0) || (p0 >= (int64_t) MAX_FD_HANDLES)
             || (fd_handle[p0] == NULL)) {
@@ -121,15 +123,23 @@ int64_t syscall_handler (int64_t syscall_number,
                     }
                     rc = fread ((void *) p1, 1, p2, fd_handle[p0]);
                     if (p0 != STDIN_FILENO) {
-                        printf ("read %u bytes from fd %u to %p\n",
+                        /* printf ("read %u bytes from fd %u to %p\n",
                                 (unsigned) rc, (unsigned) p0,
-                                (void *) p1);
+                                (void *) p1); */
                     }
                     break;
                 case 1:
                     rc = fwrite ((void *) p1, 1, p2, fd_handle[p0]);
                     fflush (fd_handle[p0]);
                     break;
+                case 5:
+                    {
+                        struct stat s;
+                        memset ((void *) p1, 0, 144);
+                        fstat (fileno (fd_handle[p0]), &s);
+                        ((uint64_t *) p1)[6] = s.st_size;
+                    }
+                    return 0;
                 case 8:
                     fseek (fd_handle[p0], p1, p2);
                     return ftell (fd_handle[p0]);
@@ -156,6 +166,16 @@ int64_t syscall_handler (int64_t syscall_number,
         case 201:
             /* time */
             return 1400000000;
+        case 96:
+            /* gettimeofday */
+            if (p0) {
+                memset ((void *) p0, 0, 16);
+                ((uint64_t *) p0)[0] = 1400000000;
+            }
+            if (p1) {
+                memset ((void *) p1, 0, 8);
+            }
+            return 0;
         default:
             printf ("Unsupported system call %u p0 %p p1 %p p2 %p\n",
                     (unsigned) syscall_number, (void *) p0, (void *) p1, (void *) p2);

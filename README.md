@@ -6,6 +6,7 @@ to be played on TempleOS.
 
 ![Screenshot](templeos.png)
 
+See also: http://blog.jwhitham.org/2015/07/porting-third-party-programs-to-templeos.html
 
 # Instructions
 
@@ -53,8 +54,8 @@ e.g. "c:/savegame".
 
 You can load other games, some others are included in the CD image. For example:
     
-    TL_Loader ("detective.z5");
-    TL_Loader ("vgame.z8");
+    Frotz ("detective.z5");
+    Frotz ("vgame.z8");
 
 These are favourites of mine, for various reasons. You can download
 more from http://ifdb.tads.org/ which has a rating system. vgame 
@@ -141,8 +142,8 @@ setjmp forms part of the launcher (TL_Launch). This technique is
 necessary because TempleOS programs are expected to return to the shell.
 They can't simply abandon execution and expect the OS to clean up.
 
-The program binary has to be compiled as position-independent code
-because TempleOS does not use virtual memory features. All programs
+The program binary "frotz.prg" has to be compiled as position-independent
+code because TempleOS does not use virtual memory features. All programs
 share the same linear address space. GCC has no difficulty producing
 position-independent code and the x86_64 instruction set supports it
 efficiently, e.g. with PC-relative jumps and calls. However, I have not
@@ -157,7 +158,7 @@ will be required. This is done in loader/make_program.py.
 # Rebuilding
 
 Full source code is available from https://github.com/jwhitham/frotz -
-run the "build.sh" script on Linux to rebuild Frotz, uClibc, and the
-"program" file.
+run the "frotz.sh" script on Linux to rebuild Frotz, uClibc, and the
+"frotz.prg" program file.
 
 

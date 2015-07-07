@@ -292,6 +292,18 @@ U64 TL_Syscall_Brk (U64 pos)
     return pos;
 }
 
+U64 TL_GetTimeOfDay (U64 * timeval, U64 * timezone)
+{
+    if (timeval) {
+        MemSet (timeval, 0, 16);
+        timeval[0] = 1400000000;
+    }
+    if (timezone) {
+        MemSet (timezone, 0, 8);
+    }
+    return 0;
+}
+
 U0 TL_Register_Dump (U64 * rax)
 {
     U64 i, j, p;
@@ -341,6 +353,9 @@ U64 TL_Syscall(U64 number, U64 p0, U64 p1, U64 p2, U64 * rax)
         case 201:
             // time
             return 1400000000;
+        case 96:
+            // gettimeofday
+            return TL_GetTimeOfDay (p0, p1);
         default:
             "\n\nunsupported system call reached! number = %d\n", number;
             "p0 = %x (%d), p1 = %x (%d), p2 = %x (%d)\n",

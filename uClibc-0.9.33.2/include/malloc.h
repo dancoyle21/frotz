@@ -175,7 +175,7 @@ extern void malloc_stats(FILE *file);
 #define M_TRIM_THRESHOLD    -1
 #define M_TOP_PAD           -2
 #define M_MMAP_THRESHOLD    -3
-#define M_MMAP_MAX          -4
+#define M_MMAP_MAX          0
 #define M_CHECK_ACTION      -5
 #define M_PERTURB           -6
 

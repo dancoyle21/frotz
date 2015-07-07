@@ -5,8 +5,8 @@
 #include <stdlib.h>
 #include <assert.h>
 
+#include "load.h"
 
-#define MAX_SIZE (64 * 1024 * 1024)
 
 size_t init_load (const char * source_fname)
 {

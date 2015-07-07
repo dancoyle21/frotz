@@ -1,9 +1,14 @@
 
 #include "TempleLoader.CPP";
 
+U0 Frotz (U8 * game)
+{
+    TL_Loader ("frotz.prg", game);
+}
+
 U0 Advent ()
 {
-    TL_Loader ("advent.z5");
+    Frotz ("advent.z5");
 }
 
 

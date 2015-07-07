@@ -75,7 +75,7 @@ SOUND_DEV = /dev/dsp
 # curses library won't work, comment out the first option and uncomment
 # the second.
 #
-CURSES = -lcurses
+CURSES = 
 #CURSES = -lncurses
 
 # Uncomment this if your need to use ncurses instead of the

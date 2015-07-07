@@ -318,8 +318,7 @@ __UCLIBC_MUTEX_EXTERN(__malloc_lock);
 #define M_MMAP_THRESHOLD      -3
 
 #ifndef DEFAULT_MMAP_THRESHOLD
-/* #define DEFAULT_MMAP_THRESHOLD (256 * 1024) */
-#define DEFAULT_MMAP_THRESHOLD (256 * 1024 * 1024)
+#define DEFAULT_MMAP_THRESHOLD (256 * 1024)
 #endif
 
 /*
@@ -334,10 +333,10 @@ __UCLIBC_MUTEX_EXTERN(__malloc_lock);
   HAVE_MMAP is not set, the default value is 0, and attempts to set it
   to non-zero values in mallopt will fail.
 */
-#define M_MMAP_MAX             -4
+#define M_MMAP_MAX             0
 
 #ifndef DEFAULT_MMAP_MAX
-#define DEFAULT_MMAP_MAX       (65536)
+#define DEFAULT_MMAP_MAX       (0)
 #endif
 
 

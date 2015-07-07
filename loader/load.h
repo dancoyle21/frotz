@@ -3,7 +3,8 @@
 
 #include <stdint.h>
 
-#define MAX_HEAP_SIZE 0x100000
+#define MAX_HEAP_SIZE 0x1000000     /* 16M - heap size */
+#define MAX_SIZE      0x1000000     /* 16M - program size */
 
 int64_t syscall_handler (int64_t syscall_number,
         int64_t p0, int64_t p1, int64_t p2);

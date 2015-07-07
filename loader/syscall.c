@@ -134,10 +134,13 @@ int64_t syscall_handler (int64_t syscall_number,
                     break;
                 case 5:
                     {
-                        struct stat s;
+                        long save;
                         memset ((void *) p1, 0, 144);
-                        fstat (fileno (fd_handle[p0]), &s);
-                        ((uint64_t *) p1)[6] = s.st_size;
+
+                        save = ftell (fd_handle[p0]);
+                        fseek (fd_handle[p0], 0, SEEK_END);
+                        ((uint64_t *) p1)[6] = ftell (fd_handle[p0]);
+                        fseek (fd_handle[p0], save, SEEK_SET);
                     }
                     return 0;
                 case 8:

@@ -10,12 +10,15 @@ void syscall_shim (void);
 int main (int argc, char ** argv)
 {
     uint64_t *      p0;
-    const char *    source_fname = "program";
+    const char *    source_fname;
     size_t          embed_minimum_size;
 
-    printf ("argc = %d\n", argc);
-    printf ("argv = %p\n", argv);
-    printf ("argv[0] = %p\n", argv[0]);
+    if (argc < 2) {
+        fputs ("Usage: winloader.exe <program.prg> [args...]\n", stderr);
+        return 1;
+    }
+
+    source_fname = argv[1];
 
     embed_minimum_size = init_load (source_fname);
     p0 = VirtualAlloc (NULL, embed_minimum_size + MAX_HEAP_SIZE,
@@ -30,7 +33,7 @@ int main (int argc, char ** argv)
 
     printf ("launch = %p\n\n\n\n", p0);
 
-    go_shim (p0, argc, argv);
+    go_shim (p0, argc - 1, &argv[1]);
     /* failure...! */
     return 1;
 }

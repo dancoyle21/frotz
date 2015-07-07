@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS2=-DHEADLESS -O2 -g -Wall  $(CFLAGS) \
+CFLAGS=-DHEADLESS -O2 -g -Wall \
     -fPIC -mfpmath=387 \
     -I../uClibc-0.9.33.2/include \
     '-Dlibc_hidden_proto(x)='
@@ -108,5 +108,5 @@ clean:
 	rm -f *.o *~ *.flc test.exe benchmark.exe *.i doom.wad.ok
 
 $(O)/%.o:	%.c
-	$(CC) $(CFLAGS2) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 

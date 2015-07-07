@@ -1,7 +1,7 @@
 // TempleOS loader for specially-built Linux programs
 // See README
 
-#define TL_MAX_HEAP_SIZE    0x200000
+#define TL_MAX_HEAP_SIZE    0x1000000     // 16M - heap size
 #define TL_MAX_FDS          10
 #define TL_ALIGN_SIZE       0x1000
 
@@ -280,6 +280,18 @@ U64 TL_Syscall_LSeek (U64 fd, I64 offset, U64 whence)
     return offset;
 }
 
+U64 TL_Syscall_FStat (U64 fd, U64 * stat)
+{
+    if ((fd >= TL_MAX_FDS) || (fd <= 2) || (TL_FD_Handle[fd].f == NULL)) {
+        "\n\nunsupported fstat for fd %d\n", fd;
+        TL_Restore_Point;
+    }
+    // only set the overall file size, everything else is zero
+    MemSet (stat, 0, 144);
+    stat[6] = FSize (TL_FD_Handle[fd].f);
+    return 0;
+}
+
 U64 TL_Syscall_Brk (U64 pos)
 {
     // brk (allocate memory)
@@ -340,6 +352,8 @@ U64 TL_Syscall(U64 number, U64 p0, U64 p1, U64 p2, U64 * rax)
             return TL_Syscall_Open (TL_To_Ptr (p0), p1);
         case 3:
             return TL_Syscall_Close (p0);
+        case 5:
+            return TL_Syscall_FStat (p0, TL_To_Ptr (p1));
         case 8:
             return TL_Syscall_LSeek (p0, p1, p2);
         case 12:
@@ -354,7 +368,6 @@ U64 TL_Syscall(U64 number, U64 p0, U64 p1, U64 p2, U64 * rax)
             // time
             return 1400000000;
         case 96:
-            // gettimeofday
             return TL_GetTimeOfDay (p0, p1);
         default:
             "\n\nunsupported system call reached! number = %d\n", number;
@@ -431,7 +444,11 @@ Bool TL_Loader(...)
     U64 i, tmp;
     U32 reloc;
 
-    program = "program";
+    if (argc < 1) {
+        "Usage: TL_Loader (\"program.prg\", ...);\n\n";
+        return FALSE;
+    }
+    program = argv[0];
 
     // read first block
     f = FOpen (program, "r");
@@ -516,10 +533,9 @@ Bool TL_Loader(...)
     TL_Base[2] = &TL_Syscall_Point;
     TL_Argv = MAlloc ((argc * 8) + 64);
     MemSet (TL_Argv, 0x00, (argc * 8) + 64);
-    TL_Argv[0] = program;
-    TL_Argc = argc + 1;
+    TL_Argc = argc;
     for (i = 0; i < argc; i++) {
-        TL_Argv[i + 1] = TL_To_Ptr (argv[i]);
+        TL_Argv[i] = TL_To_Ptr (argv[i]);
     }
     for (i = 0; i < TL_MAX_FDS; i++) {
         TL_FD_Handle[i].f = NULL;

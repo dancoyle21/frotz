@@ -1,7 +1,7 @@
 
 
 magic = 0x123456789abcdef
-count = 2000000000
+count = 500000000
 
 .text
 .global main
@@ -29,7 +29,237 @@ carry_on:
     mov     %rax, %r14
     mov     %rax, %r15
 
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+
 check_loop:
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+    push    %rax
+
+    pop     %rax
+    cmp     %rax, %rcx
+    jnz     failure_stack
+    pop     %rax
+    cmp     %rax, %rcx
+    jnz     failure_stack
+    pop     %rax
+    cmp     %rax, %rcx
+    jnz     failure_stack
+    pop     %rax
+    cmp     %rax, %rcx
+    jnz     failure_stack
+    pop     %rax
+    cmp     %rax, %rcx
+    jnz     failure_stack
+    pop     %rax
+    cmp     %rax, %rcx
+    jnz     failure_stack
+    pop     %rax
+    cmp     %rax, %rcx
+    jnz     failure_stack
+    pop     %rax
+    cmp     %rax, %rcx
+    jnz     failure_stack
+    pop     %rax
+    cmp     %rax, %rcx
+    jnz     failure_stack
+    pop     %rax
+    cmp     %rax, %rcx
+    jnz     failure_stack
+    pop     %rax
+    cmp     %rax, %rcx
+    jnz     failure_stack
+    pop     %rax
+    cmp     %rax, %rcx
+    jnz     failure_stack
+    pop     %rax
+    cmp     %rax, %rcx
+    jnz     failure_stack
+    pop     %rax
+    cmp     %rax, %rcx
+    jnz     failure_stack
+    pop     %rax
+    cmp     %rax, %rcx
+    jnz     failure_stack
+    pop     %rax
+    cmp     %rax, %rcx
+    jnz     failure_stack
+    pop     %rax
+    cmp     %rax, %rcx
+    jnz     failure_stack
+    pop     %rax
+    cmp     %rax, %rcx
+    jnz     failure_stack
+    pop     %rax
+    cmp     %rax, %rcx
+    jnz     failure_stack
+    pop     %rax
+    cmp     %rax, %rcx
+    jnz     failure_stack
+    pop     %rax
+    cmp     %rax, %rcx
+    jnz     failure_stack
+    pop     %rax
+    cmp     %rax, %rcx
+    jnz     failure_stack
+    pop     %rax
+    cmp     %rax, %rcx
+    jnz     failure_stack
+    pop     %rax
+    cmp     %rax, %rcx
+    jnz     failure_stack
+    pop     %rax
+    cmp     %rax, %rcx
+    jnz     failure_stack
+    pop     %rax
+    cmp     %rax, %rcx
+    jnz     failure_stack
+    pop     %rax
+    cmp     %rax, %rcx
+    jnz     failure_stack
+    pop     %rax
+    cmp     %rax, %rcx
+    jnz     failure_stack
+    pop     %rax
+    cmp     %rax, %rcx
+    jnz     failure_stack
+    pop     %rax
+    cmp     %rax, %rcx
+    jnz     failure_stack
+    pop     %rax
+    cmp     %rax, %rcx
+    jnz     failure_stack
+    pop     %rax
+    cmp     %rax, %rcx
+    jnz     failure_stack
+
+    cmp     0x00(%rsp), %rcx
+    jnz     failure_frame
+    cmp     0x08(%rsp), %rcx
+    jnz     failure_frame
+    cmp     0x10(%rsp), %rcx
+    jnz     failure_frame
+    cmp     0x18(%rsp), %rcx
+    jnz     failure_frame
+    cmp     0x20(%rsp), %rcx
+    jnz     failure_frame
+    cmp     0x28(%rsp), %rcx
+    jnz     failure_frame
+    cmp     0x30(%rsp), %rcx
+    jnz     failure_frame
+    cmp     0x38(%rsp), %rcx
+    jnz     failure_frame
+    cmp     0x40(%rsp), %rcx
+    jnz     failure_frame
+    cmp     0x48(%rsp), %rcx
+    jnz     failure_frame
+    cmp     0x50(%rsp), %rcx
+    jnz     failure_frame
+    cmp     0x58(%rsp), %rcx
+    jnz     failure_frame
+    cmp     0x60(%rsp), %rcx
+    jnz     failure_frame
+    cmp     0x68(%rsp), %rcx
+    jnz     failure_frame
+    cmp     0x70(%rsp), %rcx
+    jnz     failure_frame
+    cmp     0x78(%rsp), %rcx
+    jnz     failure_frame
+    cmp     0x80(%rsp), %rcx
+    jnz     failure_frame
+    cmp     0x88(%rsp), %rcx
+    jnz     failure_frame
+    cmp     0x90(%rsp), %rcx
+    jnz     failure_frame
+    cmp     0x98(%rsp), %rcx
+    jnz     failure_frame
+    cmp     0xa0(%rsp), %rcx
+    jnz     failure_frame
+    cmp     0xa8(%rsp), %rcx
+    jnz     failure_frame
+    cmp     0xb0(%rsp), %rcx
+    jnz     failure_frame
+    cmp     0xb8(%rsp), %rcx
+    jnz     failure_frame
+    cmp     0xc0(%rsp), %rcx
+    jnz     failure_frame
+    cmp     0xc8(%rsp), %rcx
+    jnz     failure_frame
+    cmp     0xd0(%rsp), %rcx
+    jnz     failure_frame
+    cmp     0xd8(%rsp), %rcx
+    jnz     failure_frame
+    cmp     0xe0(%rsp), %rcx
+    jnz     failure_frame
+    cmp     0xe8(%rsp), %rcx
+    jnz     failure_frame
+    cmp     0xf0(%rsp), %rcx
+    jnz     failure_frame
+    cmp     0xf8(%rsp), %rcx
+    jnz     failure_frame
+
     cmp     %rax, %r15
     jnz     failure_r15
     cmp     %rax, %r14
@@ -186,6 +416,24 @@ failure_rcx:
 .data
 failure_rcx_text:
     .ascii "failure rcx\n\0"
+
+.text
+failure_frame:
+    lea     failure_frame_text(%rip), %rdi
+    call    puts
+    jmp     stop_now
+.data
+failure_frame_text:
+    .ascii "failure frame\n\0"
+
+.text
+failure_stack:
+    lea     failure_stack_text(%rip), %rdi
+    call    puts
+    jmp     stop_now
+.data
+failure_stack_text:
+    .ascii "failure stack\n\0"
 
 .text
 failure_rax:

@@ -7,6 +7,7 @@ count = 500000000
 .global main
 .global puts
 .global exit
+.global time
 main:
     lea     start_message(%rip), %rdi
     call    puts
@@ -260,6 +261,7 @@ check_loop:
     cmp     0xf8(%rsp), %rcx
     jnz     failure_frame
 
+
     cmp     %rax, %r15
     jnz     failure_r15
     cmp     %rax, %r14
@@ -286,6 +288,23 @@ check_loop:
     jnz     failure_rdx
     cmp     %rax, %rcx
     jnz     failure_rcx
+
+    push    %rdi
+    push    %rsi
+    push    %rcx
+    push    %rdx
+    push    %rax
+    push    %r11
+    push    %r10
+    mov     $0, %rdi
+    call    time
+    pop     %r10
+    pop     %r11
+    pop     %rax
+    pop     %rdx
+    pop     %rcx
+    pop     %rsi
+    pop     %rdi
 
     dec     %rbx
     jnz     check_loop

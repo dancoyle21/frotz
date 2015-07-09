@@ -2,9 +2,13 @@
 
 make -C uClibc-0.9.33.2
 cd tester
-as -o main.o main.s
+gcc -O2 -g -Wall \
+    -fPIC -mfpmath=387 \
+    -I../uClibc-0.9.33.2/include \
+    '-Dlibc_hidden_proto(x)=' \
+    -c heap.c
 cd ..
 
-loader/build.sh tester.prg tester/main.o
+loader/build.sh tester.prg tester/heap.o
 
 

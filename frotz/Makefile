@@ -7,7 +7,7 @@ CC = gcc
 # Define your optimization flags.  Most compilers understand -O and -O2,
 # Standard (note: Solaris on UltraSparc using gcc 2.8.x might not like this.)
 
-OPTS = -O2 -fPIC -mfpmath=387 \
+OPTS = -O2 -fPIC -mfpmath=387 -mno-red-zone \
 -I../uClibc-0.9.33.2/include \
 '-Dlibc_hidden_proto(x)='
 

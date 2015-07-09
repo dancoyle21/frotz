@@ -466,7 +466,7 @@ Bool TL_Loader(...)
     //"load_size %d.\n", header.load_size;
     //"total_size %d.\n", header.total_size;
 
-    if ((header.start >> 16) != 0x77646a000000) {
+    if ((header.start >> 32) != 0x77646a00) {
         FClose (f);
         "Program file '%s' is not valid.\n", program;
         return FALSE;
